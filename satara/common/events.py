@@ -26,9 +26,7 @@ class DomainEventHandler[T: DomainEvent](Protocol):
 
 
 class EventBroker(Protocol):
-    def subscribe(
-        self, event_type: type[DomainEvent], handler: DomainEventHandler
-    ) -> None: ...
+    def subscribe(self, event_type: type[DomainEvent], handler: DomainEventHandler) -> None: ...
 
     async def publish(self, event: DomainEvent) -> None: ...
 

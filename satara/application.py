@@ -3,11 +3,12 @@ from satara.domain import Archive, ArchiveFile
 
 
 class FileObject(FrozenModel):
-    def as_entity(self) -> ArchiveFile:
-        ...
+    def as_entity(self) -> ArchiveFile: ...
+
 
 class CompressFilesCommand(FrozenModel):
     files: set
+
 
 class ArchiverService:
     async def compress_files(self, command: CompressFilesCommand):

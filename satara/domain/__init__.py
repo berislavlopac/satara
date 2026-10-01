@@ -1,10 +1,9 @@
-from typing import Any
-
-from satara.common.models import Entity, IDModel, FrozenModel
+from satara.common.models import Entity, FrozenModel, IDModel
 
 
 class ArchiveFileChecksum(FrozenModel):
     """File checksum of an uploaded file."""
+
     value: int
 
     def __hash__(self) -> int:

@@ -56,5 +56,3 @@ class IDModel(FrozenModel):
         if isinstance(value, (UUID, str)):
             return {"id": value}
         return value
-
-
