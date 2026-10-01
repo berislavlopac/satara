@@ -1,0 +1,199 @@
+[project]
+name = "satara"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Berislav Lopac", email = "berislav.lopac@informed.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.142.2",
+    "pydantic>=2.13.5",
+]
+
+[project.scripts]
+satara = "satara:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "deptry>=0.25.1",
+    "pyrefly>=1.3.2",
+    "ruff>=0.16.9",
+]
+
+[tool.uv]
+package = false
+default-groups = [
+    "dev",
+    "test",
+]
+override-dependencies = [
+    "opencv-python ; sys_platform == 'never'",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Unit tests plus the meta tests, which guard the source tree statically and so
+# mirror no module. Integration tests need a live service and run separately;
+# they are not measured, because the floor is the unit suite's to hold.
+testpaths = ["tests/unit", "tests/meta"]
+markers = [
+    "integration: runs against a live external service (e.g. the local compose stack); not part of the unit suite.",
+    "requires_postgres: needs a reachable PostgreSQL; skipped without one, or failed when FIND_TEST_REQUIRE_POSTGRES=1.",
+]
+
+[tool.coverage.run]
+source = ["find/"]
+omit = [
+    "*/tests/*",
+    "*/wiring/*",
+    "infra/*"
+]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+skip_empty = true
+fail_under = 85
+exclude_also = ["pragma: no cover", "@abstract",]
+omit = [
+    "find/__main__.py"
+]
+
+[tool.pyrefly]
+# Python sources only. The default includes `**/*.ipynb`, which the repository
+# ignores, and every run then warns that it skipped the pattern.
+project-includes = ["**/*.py", "**/*.pyi"]
+# Mirrors the scope the checker has always had. Setting `project-excludes` does
+# not drop the built-in exclusions (virtualenvs, dot-directories); it adds to
+# them.
+project-excludes = [
+    "tests",
+    "infra",
+    # docling-service is a standalone project with its own environment (its own
+    # pyproject/uv.lock incl. docling). The application env has no docling, so this
+    # run cannot resolve its imports; type-checking it belongs in its own env,
+    # not here.
+    "docling-service",
+]
+
+[tool.ruff]
+line-length = 96
+output-format = "grouped"
+
+[tool.ruff.lint]
+select = [  # see https://docs.astral.sh/ruff/rules/
+    "E4", "E7", "E9",  # basic pycodestyle rules
+    "W",        # pycodestyle warnings
+    "F",        # Pyflakes rules
+    "C90",      # McCabe complexity
+    "N",        # PEP8 naming conventions
+    "I",        # import statements linting and formatting
+    "PLR",      # Pylint refactoring recommendations
+    "PTH",      # recommends to use pathlib instead of os.path
+    "UP",       # pyupgrade suggestions
+    "BLE",      # locates blind exception capture
+    "B",        # locates possible bugs and design problems
+    "A",        # locates shadowing of builtin names
+    "C4",       # locates possible issues with comprehensions
+    "DTZ",      # locates incorrect use of timezone information; every datetime inside is UTC
+    "PIE",      # miscellaneous linting rules
+    "TRY",      # locates potential exception handling antipatterns
+    "PERF",     # locates potential performance issues
+    "RUF",      # various Ruff-specific linting rules
+    "S",        # various insecure code, with bandit
+    "ERA",      # eradicate: commented-out code
+]
+external = [
+    "F841",     # vulture uses this code for ignoring unused names
+]
+exclude = [
+    "migrations/*"
+]
+ignore = [
+    "TRY003",  # a raise site can add context the exception class cannot anticipate
+]
+
+[tool.ruff.lint.mccabe]
+# 12 rather than the usual 10: search and retrieval branch on real conditions
+# (paging, coverage, mode, filters), and at 10 the pressure was to hide them in
+# one-line helpers. Raised globally because per-file ignores would remove the
+# ceiling from the files most likely to grow.
+max-complexity = 12
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+    "F401",     # allow unused imports
+]
+"tests/*" = [
+    "PLR0913",  # unlimited function arguments
+    "S101",     # allow asserts
+    "S105",     # allow harcoded passwords
+    "N802",     # allow variable case in test names
+    "PLR2004",  # allow magic values in comparisons
+    "S311"      # allow random generator
+]
+"docling-service/tests/*" = [
+    "PLR0913",
+    "S101",
+    "S105",
+    "N802",
+    "PLR2004",
+    "S311",
+]
+"infra/*" = [
+    "C901",
+    "PLR0912",
+    "PLR0913",  # CDK constructs take wide keyword-argument lists by nature
+    "PLR0915",
+    "S101",
+]
+"scripts/*" = [
+    "TRY300",
+    "C901",
+    "PLR0912",
+    "S310",
+    "S603",
+    "S607",
+    "PTH112",
+    "PTH118",
+    "PTH119",
+    "PTH122",
+    "PTH208",
+    "PERF401",
+    "PLR2004",
+]
+
+[tool.ruff.lint.isort]
+# see https://docs.astral.sh/ruff/settings/#lintisort
+known-first-party = ["find"]
+force-sort-within-sections = true
+combine-as-imports = true
+
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.ruff.format]
+# see https://docs.astral.sh/ruff/settings/#format
+exclude =[
+    "migrations/*"
+]
+docstring-code-format = false
+
+[tool.deptry]
+extend_exclude = [
+    "infra",
+    "docling-service",
+    # mutmut's rewritten copy of the tree, present only after a `just mutate` run.
+    "mutants",
+    # Generates a documentation artifact, so it runs from a development
+    # environment and reaches for a library the services do not ship.
+    "scripts/generate-asyncapi.py",
+]

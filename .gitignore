@@ -1,0 +1,50 @@
+# Python bytecode and native extensions
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Packaging and build output
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+.eggs/
+requirements.txt
+
+# Environments and secrets
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env*.example
+.envrc
+
+# Tests and coverage
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*-coverage.xml
+test-reports/
+
+# Tool caches
+.ruff_cache/
+.pyrefly_cache/
+.mypy_cache/
+
+# Logs
+*.log
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local agent settings; shared ones in .claude/ stay tracked
+.claude/settings.local.json
