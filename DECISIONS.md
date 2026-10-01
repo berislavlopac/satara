@@ -32,11 +32,15 @@ The package lives in `satara/` and is not installed. Each layer (`domain`, `appl
 
 ### A file is identified by its name in the archive
 
-Only the base name of an uploaded file is kept; the uploader's directories are dropped. Names
-in an archive are unique. When a name is already taken, the new file is renamed by adding
-`-N` before the first dot, using the smallest `N` from 2 that is free: `foo.tar.gz` becomes
-`foo-2.tar.gz`. A dot at the very start of a name does not count, so `.bashrc` becomes
-`.bashrc-2`. Files are handled in the order they arrive, and no file is ever dropped.
+Only the base name of an uploaded file is kept; the uploader's directories are dropped. Both
+`/` and `\` count as separators whatever platform the service runs on, because some Windows
+tools treat a backslash in an archive entry as a directory, so `..\..\file` could otherwise
+be extracted outside the target folder.
+
+Names in an archive are unique. When a name is already taken, the new file is renamed by
+adding `-N` before the first dot, using the smallest `N` from 2 that is free: `foo.tar.gz`
+becomes `foo-2.tar.gz`. A dot at the very start of a name does not count, so `.bashrc`
+becomes `.bashrc-2`. Files are handled in the order they arrive, and no file is ever dropped.
 
 This replaces identifying a file by its checksum. Nothing in the spec asks for content-based
 uniqueness, and without it the direct flow needs no checksums at all. The cost is that two
@@ -73,6 +77,12 @@ The naming rules are invariants: every file appears once, names are unique, a na
 not collide is unchanged. They are tested with generated inputs (Hypothesis) as well as
 examples.
 
+### Checks run before commit and on every change to `main`
+
+The codebase will soon have several contributors, so the same checks run in two places:
+pre-commit hooks on each contributor's machine, which catch problems before they are
+committed, and GitHub Actions on pull requests and merges, which cannot be skipped.
+
 ### Deferred flow: first choices
 
 These will be revisited when work on the deferred flow starts.
@@ -103,5 +113,5 @@ Each step is a separate, reviewed commit or small group of commits.
 5. Size guard for the request body.
 6. Endpoint, error responses, application wiring, a `serve` recipe.
 7. Docker image.
-8. CI pipeline.
+8. CI pipeline and pre-commit hooks.
 9. README and the AI development write-up.
