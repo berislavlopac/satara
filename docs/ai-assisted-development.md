@@ -8,7 +8,7 @@ I start by providing any upfront context I can; in the example of this particula
 
 The next step is a conversation about the possible architectural approaches, as well as any additional concerns. I generally drive this conversation, making decisions myself rather than blindly accepting Claude's suggestions; in the majority of cases I will have a clear idea what needs to be done, but often Claude can provide insights and especially quick sanity checks (e.g. in this project it quickly ran some compressions to give the concrete figures) that would be too time-consuming otherwise. In this particular project, one big topic was scalability; I had a clear idea to have a separate "asynchronous" implementation for that purpose, but Claude helped me clear up some rough edges.
 
-Finally, Claude writes the code in a series of steps, with me providing directions and clarifications during the process. In this example I pushed on some decisions - for example, using Starlette's built-in middleware instead building a custom one, or requiring more clarity in the docstrings.
+Finally, Claude writes the code in a series of steps, with me providing directions and clarifications during the process. In this example I pushed on some decisions - for example, using Starlette's built-in middleware instead of building a custom one, or requiring more clarity in the docstrings.
 
 Claude Code is the main tool I use (normally in the Linux terminal), although I have been experimenting with alternative setups, like using `pi` as the coding harness and open-weight models (like Qwen) running on a local GPU machine.
 
@@ -40,13 +40,13 @@ Other layers can include some combination of:
 With regards to ensuring quality of AI-generated code, I follow a number of techniques as part of my workflow:
 
 - **Small increments:** Every step is proposed and explained, and I approve it before any code is written. Nothing is committed or pushed without my acknowledgement.
-- **Explanations before fixes:** When something breaks, the cause comes first and the fix waits for your decision.
-- **Any claims are checked against the code, ideally by running it:** That applies to my own claims as much as ones from a PR review. Examples from this project:
+- **Explanations before fixes:** When something breaks, the cause comes first and the fix waits for my decision.
+- **Any claims are checked against the code, ideally by running it:** That applies to Claude's claims as much as ones from a PR review. Examples from this project:
   - the compression question was settled by measuring throughput, not by assumption;
   - a test that would have passed for the wrong reason was caught and rebuilt;
   - a networking failure was traced to its cause before anything was changed.
 - **The same checks apply to code from any author:** The hooks and CI are the same for code from Claude or a person.
-- **Conventions grow from corrections:** When something is corrected, it becomes a rule stated in `AGENTS.md`, so the correction is taken into account in later sessions. This can be applied either to my global conventions or the project-specific ones.
+- **Conventions grow from corrections:** When something is corrected, it becomes a rule stated in the conventions files, so the correction is taken into account in later sessions. This can be applied either to my global conventions or the project-specific ones.
 
 
 ## Working with a Team
