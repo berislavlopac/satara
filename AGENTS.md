@@ -36,6 +36,10 @@ in the repository root.
   The lock file pins exact versions. Cap only for a known incompatibility, and prefer
   excluding the one bad release.
 - Prefer the latest versions, upgrading fully rather than pinning around a problem.
+- Buy before build. Look for an existing, actively maintained implementation first: in the
+  framework, in what it already depends on, then in external libraries. Build only for a
+  core focus of the project, when no quality substitute exists, or when the code is small
+  enough to cost less to maintain than a dependency; say which applies.
 
 ## Layout
 
