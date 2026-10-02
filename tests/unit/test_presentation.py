@@ -131,3 +131,10 @@ def test_archive_files_refuses_a_request_without_files(client):
     response = client.post("/archive-files", data={"name": "report"})
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
+
+
+def test_health_check_answers_that_the_service_is_up(client):
+    response = client.get("/health")
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"status": "ok"}

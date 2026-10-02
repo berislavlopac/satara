@@ -51,6 +51,12 @@ async def archive_files(
     )
 
 
+@router.get("/health")
+async def check_health() -> dict[str, str]:
+    """Report that the service is up and answering requests."""
+    return {"status": "ok"}
+
+
 async def handle_upload_rejected(request: Request, error: Exception) -> JSONResponse:
     """Answer a refused upload: 413 for a broken limit, 422 for anything else."""
     status = HTTPStatus.UNPROCESSABLE_CONTENT
