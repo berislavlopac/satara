@@ -4,6 +4,7 @@ An archive collects files under names that are unique within it. This module hol
 for those names. The format an archive is written in is not part of the model.
 """
 
+from collections.abc import AsyncIterator
 from pathlib import PureWindowsPath
 from typing import Annotated, Protocol, Self
 
@@ -135,3 +136,16 @@ class Archive(Entity):
         entry = ArchiveEntry(name=unique_name, content=content)
         self._entries[unique_name] = entry
         return entry
+
+
+class ArchiveWriter(Protocol):
+    """Writes an archive in one format, producing its bytes as they are ready."""
+
+    media_type: str
+    """The media type of the format, such as `application/zip`."""
+    suffix: str
+    """The file name suffix of the format, such as `.zip`."""
+
+    def write(self, archive: Archive) -> AsyncIterator[bytes]:
+        """Produce the archive's bytes, in order, reading each file's content as it goes."""
+        ...
