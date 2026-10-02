@@ -6,11 +6,6 @@ from pydantic import ValidationError
 
 from satara.domain import Archive, ArchiveName, EntryName
 
-
-def name(value):
-    return EntryName.model_validate(value)
-
-
 # A small pool makes collisions, and collisions with generated names, common.
 pooled_names = st.builds(
     lambda stem, extensions: stem + extensions,
@@ -21,7 +16,7 @@ free_names = st.text(
     alphabet=st.characters(categories=["L", "N"], include_characters=" .-_"),
     min_size=1,
 ).filter(lambda value: value not in {".", ".."})
-names = st.lists(st.one_of(pooled_names, free_names).map(name), max_size=30)
+names = st.lists(st.one_of(pooled_names, free_names).map(EntryName.model_validate), max_size=30)
 
 
 @pytest.mark.parametrize(
@@ -31,19 +26,25 @@ names = st.lists(st.one_of(pooled_names, free_names).map(name), max_size=30)
 )
 def test_entry_name_refuses_anything_but_a_single_file_name(value):
     with pytest.raises(ValidationError):
-        name(value)
+        EntryName.model_validate(value)
 
 
 def test_entry_name_accepts_any_characters_a_file_name_may_hold():
-    assert str(name("naïve résumé (1).txt")) == "naïve résumé (1).txt"
+    entry_name = EntryName.model_validate("naïve résumé (1).txt")
+
+    assert str(entry_name) == "naïve résumé (1).txt"
 
 
 def test_archive_name_accepts_ascii_letters_digits_and_three_punctuation_marks():
-    assert str(ArchiveName.model_validate("Report_2026-10.final")) == "Report_2026-10.final"
+    archive_name = ArchiveName.model_validate("Report_2026-10.final")
+
+    assert str(archive_name) == "Report_2026-10.final"
 
 
 def test_archive_name_accepts_up_to_a_hundred_characters():
-    assert len(str(ArchiveName.model_validate("x" * 100))) == 100
+    archive_name = ArchiveName.model_validate("x" * 100)
+
+    assert str(archive_name) == "x" * 100
 
 
 @pytest.mark.parametrize(
@@ -96,7 +97,7 @@ def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected
     archive = Archive()
 
     for value in added:
-        archive.add(name(value), memory_content(b""))
+        archive.add(EntryName.model_validate(value), memory_content(b""))
 
     assert [str(entry.name) for entry in archive.entries] == expected
 
@@ -127,11 +128,14 @@ def test_archive_never_holds_two_files_under_one_name(memory_content, added):
 @given(names)
 def test_archive_renames_a_file_only_when_its_name_is_taken(memory_content, added):
     archive = Archive()
+    taken, renamed = [], []
 
     for entry_name in added:
-        is_taken = entry_name in archive
+        taken.append(entry_name in archive)
         entry = archive.add(entry_name, memory_content(b""))
-        assert (entry.name != entry_name) == is_taken
+        renamed.append(entry.name != entry_name)
+
+    assert renamed == taken
 
 
 def test_each_archive_gets_a_new_identity():
@@ -145,6 +149,6 @@ def test_archive_keeps_its_identity_as_files_are_added(memory_content):
     archive = Archive()
     known = {archive}
 
-    archive.add(name("foo.txt"), memory_content(b""))
+    archive.add(EntryName.model_validate("foo.txt"), memory_content(b""))
 
     assert archive in known

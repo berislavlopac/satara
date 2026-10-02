@@ -23,7 +23,7 @@ class MemoryContent(Content):
 
 
 class RecordingWriter(ArchiveWriter):
-    """An archive writer that keeps every archive it is asked to write.
+    """An archive writer that keeps the last archive it was asked to write.
 
     It produces the content of each file in turn, with nothing around it.
     """
@@ -32,10 +32,10 @@ class RecordingWriter(ArchiveWriter):
     suffix = ".recorded"
 
     def __init__(self) -> None:
-        self.archives: list[Archive] = []
+        self.archive: Archive | None = None
 
     def write(self, archive: Archive) -> AsyncIterator[bytes]:
-        self.archives.append(archive)
+        self.archive = archive
         return self._to_chunks(archive)
 
     async def _to_chunks(self, archive: Archive) -> AsyncIterator[bytes]:
