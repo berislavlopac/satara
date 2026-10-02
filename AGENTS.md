@@ -121,6 +121,14 @@ Applies to everything a person reads: comments, docs, commit messages, pull requ
 - `pytest --spec` renders test docstrings, so the first line is a complete one-line summary
   followed by a blank line. A summary wrapped over two lines prints a dangling fragment.
 - Test through the public surface. Do not import private helpers into tests.
+- Tests are not type-checked: they prove themselves by running, and annotating them invites a
+  fight with every double. The test doubles are the exception. They live in
+  `tests/unit/fakes.py`, the one test path pyrefly checks, and each subclasses the protocol
+  it stands in for, so a double cannot drift from it.
+- Tests get their doubles from fixtures and never import them. Fixtures live in
+  `conftest.py` at the level where they are shared, or in the test module that alone uses
+  them. A fixture may return an instance, a class or a factory; a fixture a Hypothesis test
+  needs is session-scoped, since Hypothesis cannot use a function-scoped one.
 
 ## Commits
 

@@ -5,11 +5,6 @@ from pydantic import ValidationError
 from satara.domain import Archive, EntryName
 
 
-class FakeContent:
-    async def read(self, size=-1):
-        return b""
-
-
 def name(value):
     return EntryName.model_validate(value)
 
@@ -60,19 +55,19 @@ def test_entry_name_accepts_any_characters_a_file_name_may_hold():
         "numbered name taken first",
     ],
 )
-def test_archive_numbers_a_name_it_already_holds(added, expected):
+def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected):
     archive = Archive()
 
     for value in added:
-        archive.add(name(value), FakeContent())
+        archive.add(name(value), memory_content(b""))
 
     assert [str(entry.name) for entry in archive.entries] == expected
 
 
 @given(names)
-def test_archive_keeps_every_file_in_the_order_it_was_added(added):
+def test_archive_keeps_every_file_in_the_order_it_was_added(memory_content, added):
     archive = Archive()
-    contents = [FakeContent() for _ in added]
+    contents = [memory_content(b"") for _ in added]
 
     for entry_name, content in zip(added, contents, strict=True):
         archive.add(entry_name, content)
@@ -82,23 +77,23 @@ def test_archive_keeps_every_file_in_the_order_it_was_added(added):
 
 
 @given(names)
-def test_archive_never_holds_two_files_under_one_name(added):
+def test_archive_never_holds_two_files_under_one_name(memory_content, added):
     archive = Archive()
 
     for entry_name in added:
-        archive.add(entry_name, FakeContent())
+        archive.add(entry_name, memory_content(b""))
 
     held = [entry.name for entry in archive.entries]
     assert len(set(held)) == len(held)
 
 
 @given(names)
-def test_archive_renames_a_file_only_when_its_name_is_taken(added):
+def test_archive_renames_a_file_only_when_its_name_is_taken(memory_content, added):
     archive = Archive()
 
     for entry_name in added:
         is_taken = entry_name in archive
-        entry = archive.add(entry_name, FakeContent())
+        entry = archive.add(entry_name, memory_content(b""))
         assert (entry.name != entry_name) == is_taken
 
 
@@ -109,10 +104,10 @@ def test_each_archive_gets_a_new_identity():
     assert first != second
 
 
-def test_archive_keeps_its_identity_as_files_are_added():
+def test_archive_keeps_its_identity_as_files_are_added(memory_content):
     archive = Archive()
     known = {archive}
 
-    archive.add(name("foo.txt"), FakeContent())
+    archive.add(name("foo.txt"), memory_content(b""))
 
     assert archive in known

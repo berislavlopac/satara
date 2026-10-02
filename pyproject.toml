@@ -54,11 +54,10 @@ fail_under = 85
 exclude_also = ["pragma: no cover", "@abstract"]
 
 [tool.pyrefly]
-# Python sources only. The default includes `**/*.ipynb`, and every run then warns that it
-# skipped the pattern.
-project-includes = ["**/*.py", "**/*.pyi"]
-# Adds to the built-in exclusions (virtualenvs, dot-directories) rather than replacing them.
-project-excludes = ["tests"]
+# The package and the test doubles. Tests themselves are not type-checked: they prove
+# themselves by running, and annotating them invites a fight with every double and mock. The
+# doubles are checked so that they cannot drift from the protocols they stand in for.
+project-includes = ["satara/**/*.py", "tests/unit/fakes.py"]
 
 [tool.ruff]
 line-length = 96
