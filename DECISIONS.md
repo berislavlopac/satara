@@ -60,8 +60,8 @@ limits only the number of files and fields, not their size. A total-size limit c
 the endpoint would come after the whole upload is already on disk. So the total size is
 enforced while the request body arrives: a request whose `Content-Length` already exceeds it
 is refused at once, and any other is refused as soon as the bytes read pass it. Both are
-refused with 413. The other limits are checked in the endpoint, where the total-size limit
-already bounds the cost of a request that breaks them.
+refused with 413. The other limits are checked in the application service, where the
+total-size limit already bounds the cost of a request that breaks them.
 
 ### The direct flow streams its response
 

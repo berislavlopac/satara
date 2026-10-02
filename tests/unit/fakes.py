@@ -3,7 +3,9 @@
 Tests receive these through fixtures and never import them.
 """
 
-from satara.domain import Content
+from collections.abc import AsyncIterator
+
+from satara.domain import Archive, ArchiveWriter, Content
 
 
 class MemoryContent(Content):
@@ -18,3 +20,25 @@ class MemoryContent(Content):
         chunk = self.data[self.position : end]
         self.position += len(chunk)
         return chunk
+
+
+class RecordingWriter(ArchiveWriter):
+    """An archive writer that keeps every archive it is asked to write.
+
+    It produces the content of each file in turn, with nothing around it.
+    """
+
+    media_type = "application/x-recorded"
+    suffix = ".recorded"
+
+    def __init__(self) -> None:
+        self.archives: list[Archive] = []
+
+    def write(self, archive: Archive) -> AsyncIterator[bytes]:
+        self.archives.append(archive)
+        return self._to_chunks(archive)
+
+    async def _to_chunks(self, archive: Archive) -> AsyncIterator[bytes]:
+        for entry in archive.entries:
+            while chunk := await entry.content.read():
+                yield chunk

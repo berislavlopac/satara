@@ -53,11 +53,12 @@ in the repository root.
 
 ## Models
 
-- `FrozenModel` is the mechanism only and is never the direct base of a concrete class. Each
-  layer names its own base on top of it: `ValueObject` in the domain, `Command` and `Result`
-  in the application, `APIModel` in presentation.
-- Name commands and results after the use case: `compress_files(command:
-  CompressFilesCommand) -> CompressFilesResult`.
+- `FrozenModel` is the mechanism only. In the domain it is never the direct base of a concrete
+  class: value objects build on `ValueObject`. Other layers prefer a named base, `Command`
+  and `Result` in the application and `APIModel` in presentation, but a plain data carrier
+  such as a DTO may use `FrozenModel` directly.
+- Name commands and results after the use case: `archive_files(command:
+  ArchiveFilesCommand) -> ArchiveFilesResult`.
 - Entities are mutable, compare and hash by identity, and change only through their own
   methods, never by attribute assignment.
 - Wrap a primitive in a value object unless the raw type is clearly better. Pydantic models
@@ -117,7 +118,7 @@ Applies to everything a person reads: comments, docs, commit messages, pull requ
 
 - Every test directory is a package, with an `__init__.py`.
 - A test name, with `test_` dropped and underscores turned into spaces, reads as a sentence
-  describing the behaviour: `test_compress_files_refuses_an_empty_request`.
+  describing the behaviour: `test_archive_files_refuses_an_empty_request`.
 - `pytest --spec` renders test docstrings, so the first line is a complete one-line summary
   followed by a blank line. A summary wrapped over two lines prints a dangling fragment.
 - Test through the public surface. Do not import private helpers into tests.
