@@ -12,6 +12,11 @@ test:
 test-cov:
     uv run --all-groups pytest --spec --cov
 
+# Serve the API locally, reloading on code changes.
+[group('Development')]
+serve:
+    uv run uvicorn --factory satara.wiring:create_app --reload
+
 # Run linting and formatting checks.
 [group('Development')]
 lint:

@@ -8,8 +8,12 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "fastapi>=0.142.2",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
+    "starlette>=1.7.0",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]
@@ -19,6 +23,7 @@ dev = [
     "ruff>=0.16.9",
 ]
 test = [
+    "httpx2>=2.13.1",
     "hypothesis>=6.168.3",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
@@ -111,3 +116,7 @@ max-args = 8
 [tool.ruff.format]
 # see https://docs.astral.sh/ruff/settings/#format
 docstring-code-format = false
+
+[tool.deptry.per_rule_ignores]
+# Used without being imported: the form parser loads one, and the other is the server.
+DEP002 = ["python-multipart", "uvicorn"]

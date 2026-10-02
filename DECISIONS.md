@@ -58,10 +58,11 @@ files, 50 MiB and 200 MiB.
 The upload parser writes every file to temporary storage before the endpoint runs, and it
 limits only the number of files and fields, not their size. A total-size limit checked inside
 the endpoint would come after the whole upload is already on disk. So the total size is
-enforced while the request body arrives: a request whose `Content-Length` already exceeds it
-is refused at once, and any other is refused as soon as the bytes read pass it. Both are
-refused with 413. The other limits are checked in the application service, where the
-total-size limit already bounds the cost of a request that breaks them.
+enforced while the request body arrives, by Starlette's middleware (see 2026-10-02): a request
+whose `Content-Length` already exceeds it is refused at once, and any other is refused as soon
+as the bytes read pass it. Both are refused with 413. The other limits are checked in the
+application service, where the total-size limit already bounds the cost of a request that
+breaks them.
 
 ### The direct flow streams its response
 
@@ -119,6 +120,37 @@ UTC: `archive-20261002T143015Z`.
 The suffix is always added, so a requested `report.zip` is offered as `report.zip.zip`. That is
 accepted as an edge case rather than handled with a rule that depends on the format.
 
+### The direct endpoint is a call, not a resource
+
+The direct flow is `POST /archive-files`, named after the use case it runs. It creates nothing
+the client can fetch again, so it is a remote call rather than a resource, and the path says
+so. `/archives` is left for the deferred flow, where an archive does become a resource with an
+address and a status.
+
+### Refusals and response headers
+
+A refused upload is answered with a JSON body naming the reason, except for one case of the body
+size guard, described below. A broken limit (too many files, a file too large, a body too large)
+is 413 Content Too Large; anything else the client sent that cannot be used (no files, an
+unusable file or archive name) is 422.
+
+The archive is sent as an attachment under its name, with `Cache-Control: no-store`, since it
+holds the client's own files and no cache along the way should keep a copy. It carries no
+`Content-Length`, being streamed.
+
+### The body size guard is Starlette's
+
+Starlette, which FastAPI is built on, has a middleware for exactly the total-size limit: it
+refuses a body whose declared length is too large, and otherwise counts the bytes as they
+arrive. The service uses it rather than one of its own. Its two refusals differ in form: a
+body declared too large gets a plain-text 413, one that grows too large a JSON 413. Both carry
+the right status, so the difference is accepted.
+
+### The server
+
+The service runs under uvicorn with its standard extras, which add a faster event loop and HTTP
+parser.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
@@ -127,8 +159,9 @@ Each step is a separate, reviewed commit or small group of commits.
 2. Domain model: the archive and its entries, the naming rules, property tests.
 3. Archive writer port and the ZIP adapter.
 4. Application service: checks the limits and builds the archive.
-5. Size guard for the request body.
-6. Endpoint, error responses, application wiring, a `serve` recipe.
+5. Size guard for the request body. Folded into step 6: Starlette already provides the
+   guard, so all that remained was to switch it on where the application is built.
+6. Endpoint, error responses, application wiring, the body size guard, a `serve` recipe.
 7. Docker image.
 8. CI pipeline and pre-commit hooks.
 9. README and the AI development write-up.
