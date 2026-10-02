@@ -151,6 +151,28 @@ the right status, so the difference is accepted.
 The service runs under uvicorn with its standard extras, which add a faster event loop and HTTP
 parser.
 
+### The Docker image
+
+The image follows uv's documented pattern in two stages. The first, on uv's own image, installs
+the locked runtime dependencies into a virtual environment; the dev and test groups stay out.
+The second, on the plain Python image that uv's is based on, receives only that environment and
+the `satara` package, so the image holds neither uv nor the build tools nor the tests.
+
+The service runs as an unprivileged user, as a single server process per container: it scales
+by running more containers. The server is started without a shell in between, so it receives
+the stop signal and shuts down cleanly. Settings come from `SATARA_` environment variables.
+
+The image declares a health check against `GET /health`, an endpoint added for it. A check that
+only opened the port would not show whether the application answers. The endpoint is
+operational, not part of the API the spec asks for.
+
+The uv image is pinned to the version used in development and the Python image to its
+`3.14-slim-trixie` tag. A pinned image is to the build what the lock file is to the
+dependencies; keeping both current is left to automated updates.
+
+The build context is an allow-list: only `pyproject.toml`, `uv.lock` and the package are sent
+to the build, so nothing local leaks into the image and unrelated edits keep the cached layers.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

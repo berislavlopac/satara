@@ -40,6 +40,16 @@ reformat:
     uv run ruff format .
     uv run ruff check --select I --fix .
 
+# Build the Docker image.
+[group('Docker')]
+build-image:
+    docker build -t satara .
+
+# Run the Docker image, serving on port 8000.
+[group('Docker')]
+run-image:
+    docker run --rm -p 8000:8000 satara
+
 # Extract current production requirements. Save to a file by appending `> requirements.txt`.
 [group('Tools')]
 reqs:
