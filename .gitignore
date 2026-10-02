@@ -48,3 +48,6 @@ test-reports/
 
 # Local agent settings; shared ones in .claude/ stay tracked
 .claude/settings.local.json
+
+# The built documentation site.
+site/

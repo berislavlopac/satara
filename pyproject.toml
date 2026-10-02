@@ -24,6 +24,9 @@ dev = [
     "ruff>=0.16.9",
     "rust-just>=1.58.0",
 ]
+docs = [
+    "mkdocs-materialx>=10.2.0",
+]
 test = [
     "httpx2>=2.13.1",
     "hypothesis>=6.168.3",

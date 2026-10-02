@@ -1,7 +1,7 @@
 # Agent instructions
 
 Satara is a FastAPI service that packs uploaded files into a ZIP archive. The spec is the PDF
-in the repository root.
+in `docs/take-home-exercise.pdf`.
 
 ## Working style
 
