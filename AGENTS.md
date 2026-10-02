@@ -130,6 +130,14 @@ Applies to everything a person reads: comments, docs, commit messages, pull requ
   `conftest.py` at the level where they are shared, or in the test module that alone uses
   them. A fixture may return an instance, a class or a factory; a fixture a Hypothesis test
   needs is session-scoped, since Hypothesis cannot use a function-scoped one.
+- Tests also show how the code is used. As guidance rather than a rule:
+  - Each test has three steps, setup, call and assert, separated by blank lines. A comment
+    is for a step that needs explaining. The call stays out of the assert line, and
+    assertions stay out of loops and helpers where they can be collected and asserted once.
+  - Fixtures and helpers may hide setup, never the call under test or what is asserted.
+    At least one test per unit builds its input in full.
+  - One behaviour per test, not one assert per test.
+  - Where a behaviour can only be reached through awkward steps, the test says why.
 
 ## Commits
 
