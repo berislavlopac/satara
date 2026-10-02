@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from satara!")
+"""Satara: packs uploaded files into a ZIP archive."""
