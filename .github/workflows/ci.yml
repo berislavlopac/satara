@@ -36,10 +36,15 @@ jobs:
       - name: Install the dependencies
         run: uv sync --locked --all-groups
 
+      # The GitHub output format annotates each error on its line in the pull request.
       - name: Lint
+        env:
+          RUFF_OUTPUT_FORMAT: github
         run: uv run just lint
 
       - name: Type check
+        env:
+          PYREFLY_OUTPUT_FORMAT: github
         run: uv run just type
 
       - name: Test, with the coverage floor
