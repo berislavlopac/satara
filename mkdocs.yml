@@ -1,0 +1,62 @@
+site_name: Satara Documentation
+site_description: A service that packs uploaded files into a ZIP archive.
+site_author: Berislav Lopac <berislav@lopac.net>
+repo_url: https://github.com/berislavlopac/satara
+# Plain file links, so the built site also works opened straight from disk.
+use_directory_urls: false
+
+validation:
+  omitted_files: warn
+  absolute_links: relative_to_docs
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: materialx
+  features:
+    - navigation.instant
+    - content.code.copy
+    - search.suggest
+  palette:
+    # Follows the system colour scheme until a reader picks one.
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+
+# Ordered by who is reading: someone running the service, someone calling it, someone
+# changing it, and someone assessing it as a take-home exercise. The AI write-up stands on its
+# own: it describes the author's general practice, not only this project.
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Using the API: api.md
+  - Running it: operations.md
+  - How it's built: architecture.md
+  - AI-assisted development: ai-assisted-development.md
+  - The exercise: exercise.md

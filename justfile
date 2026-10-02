@@ -45,6 +45,16 @@ reformat:
     uv run ruff format .
     uv run ruff check --select I --fix .
 
+# Serve the documentation locally, reloading on changes.
+[group('Docs')]
+docs:
+    uv run --group docs mkdocs serve --livereload -a localhost:7000
+
+# Build the documentation, failing on any warning.
+[group('Docs')]
+build-docs:
+    uv run --group docs mkdocs build --strict
+
 # Build the Docker image.
 [group('Docker')]
 build-image:
