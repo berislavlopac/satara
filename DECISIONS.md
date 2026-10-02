@@ -166,9 +166,9 @@ The image declares a health check against `GET /health`, an endpoint added for i
 only opened the port would not show whether the application answers. The endpoint is
 operational, not part of the API the spec asks for.
 
-The uv image is pinned to the version used in development and the Python image to its
-`3.14-slim-trixie` tag. A pinned image is to the build what the lock file is to the
-dependencies; keeping both current is left to automated updates.
+The uv image is pinned to an exact version and the Python image to its `3.14-slim-trixie` tag.
+A pinned image is to the build what the lock file is to the dependencies. Dependabot keeps both
+current, so the uv in the image may be newer than the one a developer has installed.
 
 The build context is an allow-list: only `pyproject.toml`, `uv.lock` and the package are sent
 to the build, so nothing local leaks into the image and unrelated edits keep the cached layers.
