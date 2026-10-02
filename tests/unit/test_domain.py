@@ -1,6 +1,6 @@
+import pytest
 from hypothesis import given, strategies as st
 from pydantic import ValidationError
-import pytest
 
 from satara.domain import Archive, EntryName
 

@@ -104,7 +104,6 @@ ignore = [
 [tool.ruff.lint.isort]
 # see https://docs.astral.sh/ruff/settings/#lintisort
 known-first-party = ["satara"]
-force-sort-within-sections = true
 combine-as-imports = true
 
 [tool.ruff.lint.pylint]
