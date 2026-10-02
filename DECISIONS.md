@@ -173,6 +173,44 @@ dependencies; keeping both current is left to automated updates.
 The build context is an allow-list: only `pyproject.toml`, `uv.lock` and the package are sent
 to the build, so nothing local leaks into the image and unrelated edits keep the cached layers.
 
+### What the checks run, and where
+
+This fills in the decision of 2026-10-01 that checks run before commit and on every change to
+`main`.
+
+Before each commit, Git hooks run hygiene checks on the changed files, then the lint and type
+check recipes. They take seconds and catch problems before a commit exists. The tests are not
+in the hooks: they would make them slower as the suite grows, and slow hooks get skipped.
+
+CI runs on GitHub Actions for every pull request to `main` and every push to `main`, since
+hooks can be skipped or never installed. It runs the lint and type checks again, then the tests
+with the coverage floor, then the Docker image: built, started, waited on until its health
+check passes, and sent one real upload, which shows that the image serves requests and not
+only that it builds.
+
+The hooks and CI call the same `just` recipes through `uv`, so each command, its flags and the
+tool versions are defined once, in the recipes and the lock file. `just` itself is a locked
+dev dependency. Third-party actions are pinned to commits, since a tag can be moved to other
+code, and Dependabot proposes weekly updates for the actions, the base images and the Python
+dependencies.
+
+The hooks are run by prek, a newer and faster replacement for pre-commit that reads the same
+configuration. It is chosen partly to try it out. The configuration uses prek's built-in
+hygiene hooks, so it needs prek rather than pre-commit.
+
+### No release, publishing or deployment
+
+The spec asks for CI/CD. This solution stops at CI: it does not release, publish or deploy the
+service. With a target environment, the next steps would be:
+
+- Publish the image to a registry, such as GitHub's or Amazon's, on every merge to `main`,
+  tagged with the commit.
+- Release by tagging a version, promoting the image already built and checked rather than
+  building again for each environment.
+- Deploy to AWS, where the deferred flow's S3 storage already points: the service as a
+  container on ECS Fargate behind a load balancer, with the infrastructure described in code
+  using CDK or Terraform.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
