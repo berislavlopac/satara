@@ -1,3 +1,8 @@
+# Output formats for the checkers, overridable from the environment: CI sets both to
+# `github`, so each error is annotated on its line in the pull request.
+ruff_format := env("RUFF_OUTPUT_FORMAT", "concise")
+pyrefly_format := env("PYREFLY_OUTPUT_FORMAT", "min-text")
+
 # List available recipes.
 help:
     @just --list --unsorted
@@ -21,13 +26,13 @@ serve:
 [group('Development')]
 lint:
     uv run --all-groups deptry .
-    uv run ruff format --check --output-format concise .
-    uv run ruff check --output-format concise .
+    uv run ruff format --check --output-format {{ ruff_format }} .
+    uv run ruff check --output-format {{ ruff_format }} .
 
 # Run static typing analysis.
 [group('Development')]
 type:
-    uv run --all-groups pyrefly check --output-format min-text
+    uv run --all-groups pyrefly check --output-format {{ pyrefly_format }}
 
 # Run basic code and type checks.
 [group('Development')]
