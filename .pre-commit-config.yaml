@@ -1,0 +1,47 @@
+# Git hooks, run by prek. Install them once with `uv run prek install`.
+#
+# The checks call the same just recipes as CI, so a hook, CI and a terminal run the same
+# commands with the same flags and the same locked tool versions. Tests are left to CI:
+# slow hooks get skipped.
+
+# `prek install` installs every hook type listed here, so the sync hook below is wired too.
+default_install_hook_types: [pre-commit, post-checkout, post-merge]
+# Hooks run before a commit unless they name other stages.
+default_stages: [pre-commit]
+
+repos:
+  # File hygiene, implemented by prek itself.
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: lint
+        name: lint (deptry, ruff format --check, ruff check)
+        entry: uv run just lint
+        language: system
+        pass_filenames: false
+        types_or: [python, toml]
+
+      - id: type
+        name: type check (pyrefly)
+        entry: uv run just type
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      # Keeps the environment in step with the lock file after switching branches or
+      # pulling, which checkout alone does not do.
+      - id: uv-sync
+        name: uv sync
+        entry: uv sync --all-groups
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [post-checkout, post-merge]
