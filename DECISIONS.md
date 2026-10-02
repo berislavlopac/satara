@@ -102,6 +102,23 @@ These will be revisited when work on the deferred flow starts.
   `pychecksumtool` was rejected: it requires `pytest<9` at runtime, which conflicts with this
   project's test dependencies.
 
+## 2026-10-02
+
+### The client may name the archive
+
+The spec asks only for appropriate response headers, which a generated name would satisfy.
+Letting the client choose the name is an addition of ours: a request may carry an optional
+archive name, and the download is offered under it, with the format's suffix added.
+
+A name starts with an ASCII letter or digit and holds only ASCII letters, digits, `-`, `_` and
+`.`, up to 100 characters. ASCII keeps the name usable in the `Content-Disposition` header
+without the encoded second form that other characters need, and the first character rules out
+hidden files and `..`. Without a name, the archive is named after the time it was created, in
+UTC: `archive-20261002T143015Z`.
+
+The suffix is always added, so a requested `report.zip` is offered as `report.zip.zip`. That is
+accepted as an edge case rather than handled with a rule that depends on the format.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

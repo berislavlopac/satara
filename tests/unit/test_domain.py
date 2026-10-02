@@ -1,8 +1,10 @@
+from datetime import UTC, datetime
+
 import pytest
 from hypothesis import given, strategies as st
 from pydantic import ValidationError
 
-from satara.domain import Archive, EntryName
+from satara.domain import Archive, ArchiveName, EntryName
 
 
 def name(value):
@@ -34,6 +36,41 @@ def test_entry_name_refuses_anything_but_a_single_file_name(value):
 
 def test_entry_name_accepts_any_characters_a_file_name_may_hold():
     assert str(name("naïve résumé (1).txt")) == "naïve résumé (1).txt"
+
+
+def test_archive_name_accepts_ascii_letters_digits_and_three_punctuation_marks():
+    assert str(ArchiveName.model_validate("Report_2026-10.final")) == "Report_2026-10.final"
+
+
+def test_archive_name_accepts_up_to_a_hundred_characters():
+    assert len(str(ArchiveName.model_validate("x" * 100))) == 100
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", ".hidden", "-option", "two words", "dir/report", "naïve", "x" * 101],
+    ids=[
+        "empty",
+        "leading dot",
+        "leading dash",
+        "space",
+        "slash",
+        "letter outside ascii",
+        "over a hundred characters",
+    ],
+)
+def test_archive_name_refuses_anything_outside_its_rules(value):
+    with pytest.raises(ValidationError):
+        ArchiveName.model_validate(value)
+
+
+def test_an_unnamed_archive_is_named_after_the_time_it_was_created():
+    before = datetime.now(UTC).replace(microsecond=0)
+    archive = Archive()
+    after = datetime.now(UTC)
+
+    created = datetime.strptime(str(archive.name), "archive-%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    assert before <= created <= after
 
 
 @pytest.mark.parametrize(

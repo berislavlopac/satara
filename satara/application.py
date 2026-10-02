@@ -6,7 +6,14 @@ from pathlib import PureWindowsPath
 from pydantic import ConfigDict, SkipValidation, ValidationError
 
 from satara.common.models import FrozenModel
-from satara.domain import Archive, ArchiveID, ArchiveWriter, Content, EntryName
+from satara.domain import (
+    Archive,
+    ArchiveID,
+    ArchiveName,
+    ArchiveWriter,
+    Content,
+    EntryName,
+)
 
 
 class Command(FrozenModel):
@@ -37,6 +44,10 @@ class InvalidFileNameError(UploadRejectedError):
     """A file's name leaves nothing usable once its directories are dropped."""
 
 
+class InvalidArchiveNameError(UploadRejectedError):
+    """The name requested for the archive breaks the rules for archive names."""
+
+
 class UploadedFile(FrozenModel):
     """A file as the client sent it."""
 
@@ -55,6 +66,8 @@ class ArchiveFilesCommand(Command):
 
     files: tuple[UploadedFile, ...]
     """The files, in the order they were sent."""
+    archive_name: str | None = None
+    """The name requested for the archive, without a suffix; generated if not given."""
 
 
 class ArchiveFilesResult(Result):
@@ -65,7 +78,7 @@ class ArchiveFilesResult(Result):
     archive_id: ArchiveID
     """The identity of the archive."""
     file_name: str
-    """The name to offer for the archive: its identity, with the format's suffix."""
+    """The name to offer for the archive: its name, with the format's suffix."""
     media_type: str
     """The media type of the archive's format."""
     chunks: SkipValidation[AsyncIterator[bytes]]
@@ -90,7 +103,8 @@ class ArchiveService:
     def archive_files(self, command: ArchiveFilesCommand) -> ArchiveFilesResult:
         """Check the files against the limits and collect them into an archive.
 
-        Each file keeps only the base name it was sent with. No content is read here: the
+        Each file keeps only the base name it was sent with. The format's suffix is added to the
+        archive's name even when the name already ends with it. No content is read here: the
         archive's bytes are produced as the result's `chunks` are read, so every file has been
         accepted before the first byte.
 
@@ -104,6 +118,7 @@ class ArchiveService:
             NoFilesError: No files were sent.
             TooManyFilesError: More files were sent than the limit allows.
             FileTooLargeError: A file is larger than the limit allows.
+            InvalidArchiveNameError: The requested archive name breaks the rules.
             InvalidFileNameError: A file's name leaves nothing usable.
         """
         files = command.files
@@ -113,7 +128,11 @@ class ArchiveService:
             raise TooManyFilesError(
                 f"{len(files)} files were sent; at most {self._max_files} are allowed"
             )
-        archive = Archive()
+        archive = (
+            Archive()
+            if command.archive_name is None
+            else Archive(name=_to_archive_name(command.archive_name))
+        )
         for file in files:
             # `PureWindowsPath` treats both `/` and `\` as separators, on any platform.
             base_name = PureWindowsPath(file.name).name
@@ -125,7 +144,7 @@ class ArchiveService:
             archive.add(_to_entry_name(base_name), file.content)
         return ArchiveFilesResult(
             archive_id=archive.archive_id,
-            file_name=f"{archive.archive_id}{self._writer.suffix}",
+            file_name=f"{archive.name}{self._writer.suffix}",
             media_type=self._writer.media_type,
             chunks=self._writer.write(archive),
         )
@@ -141,3 +160,15 @@ def _to_entry_name(base_name: str) -> EntryName:
         return EntryName.model_validate(base_name)
     except ValidationError:
         raise InvalidFileNameError(f"{base_name!r} is not a usable file name") from None
+
+
+def _to_archive_name(name: str) -> ArchiveName:
+    """Return the archive name requested.
+
+    Raises:
+        InvalidArchiveNameError: The name breaks the rules for archive names.
+    """
+    try:
+        return ArchiveName.model_validate(name)
+    except ValidationError:
+        raise InvalidArchiveNameError(f"{name!r} is not a usable archive name") from None

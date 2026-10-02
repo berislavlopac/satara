@@ -1,10 +1,12 @@
 """Domain model: archives and the files in them.
 
-An archive collects files under names that are unique within it. This module holds the rules
-for those names. The format an archive is written in is not part of the model.
+An archive collects files under names that are unique within it, and has a name of its own.
+This module holds the rules for those names. The format an archive is written in is not part
+of the model.
 """
 
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import PureWindowsPath
 from typing import Annotated, Protocol, Self
 
@@ -83,6 +85,29 @@ class ArchiveEntry(ValueObject):
     """The bytes of the file."""
 
 
+class ArchiveName(ValueObject):
+    """The name of an archive, without the suffix of its format.
+
+    It starts with an ASCII letter or digit and holds only ASCII letters, digits, `-`, `_` and
+    `.`, up to 100 characters.
+    """
+
+    value: Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$", max_length=100)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _wrap_raw(cls, value: object) -> object:
+        return {"value": value} if isinstance(value, str) else value
+
+    def __str__(self) -> str:
+        return self.value
+
+    @classmethod
+    def generate(cls) -> Self:
+        """Generate a name from the current time in UTC, such as `archive-20261002T143015Z`."""
+        return cls.model_validate(f"archive-{datetime.now(UTC):%Y%m%dT%H%M%SZ}")
+
+
 class ArchiveID(IDModel):
     """The identity of an archive, assigned when the archive is created."""
 
@@ -97,6 +122,8 @@ class Archive(Entity):
 
     archive_id: Annotated[ArchiveID, Field(default_factory=ArchiveID.generate)]
     """The identity of the archive."""
+    name: Annotated[ArchiveName, Field(default_factory=ArchiveName.generate)]
+    """The name of the archive; generated from the time of creation unless one is given."""
 
     _entries: dict[EntryName, ArchiveEntry] = PrivateAttr(default_factory=dict)
 
