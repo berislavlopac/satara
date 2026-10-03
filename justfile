@@ -12,7 +12,7 @@ help:
 test:
     uv run --all-groups pytest --spec
 
-# Run the integration tests against the local Compose stack (`docker compose up -d`).
+# Run the integration tests against the local Compose stack, started with `just up`.
 [group('Testing')]
 test-integration:
     uv run --all-groups pytest --spec -m integration tests/integration
@@ -59,6 +59,26 @@ docs:
 [group('Docs')]
 build-docs:
     uv run --group docs mkdocs build --strict
+
+# Start the whole stack, the deferred flow included, and wait until it is healthy.
+[group('Docker')]
+up:
+    docker compose up -d --build --wait
+
+# Stop the whole stack.
+[group('Docker')]
+down:
+    docker compose down
+
+# Archive files with the running service in one request: `just archive a.txt --name report`.
+[group('Try it')]
+archive +arguments:
+    uv run python scripts/archive.py {{ arguments }}
+
+# Archive files through the deferred flow: upload to storage, then fetch the built archive.
+[group('Try it')]
+archive-deferred +arguments:
+    uv run python scripts/archive.py --deferred {{ arguments }}
 
 # Build the Docker image.
 [group('Docker')]
