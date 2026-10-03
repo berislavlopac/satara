@@ -2,13 +2,14 @@ import json
 
 import pytest
 
+from satara.common.queue import QueueMessage
 from satara.domain import ArchiveID
 from satara.presentation.consumer import to_archive_id
 
 
 def notification(key):
     record = {"eventName": "ObjectCreated:Put", "s3": {"object": {"key": key, "size": 5}}}
-    return {"Body": json.dumps({"Records": [record]}), "ReceiptHandle": "handle"}
+    return QueueMessage(body=json.dumps({"Records": [record]}), receipt="r", receive_count=1)
 
 
 def test_to_archive_ID_reads_the_archive_from_an_upload_notification():
@@ -23,10 +24,10 @@ def test_to_archive_ID_reads_the_archive_from_an_upload_notification():
 @pytest.mark.parametrize(
     "message",
     [
-        {"Body": json.dumps({"Event": "s3:TestEvent"}), "ReceiptHandle": "handle"},
+        QueueMessage(body=json.dumps({"Event": "s3:TestEvent"}), receipt="r", receive_count=1),
         notification(f"archives/{ArchiveID.generate()}/archive"),
         notification("uploads/not-an-id/0"),
-        {"Body": "not JSON", "ReceiptHandle": "handle"},
+        QueueMessage(body="not JSON", receipt="r", receive_count=1),
     ],
     ids=["test event", "not an upload", "no archive ID", "not JSON"],
 )
