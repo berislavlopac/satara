@@ -6,10 +6,13 @@ from pydantic import ValidationError
 
 from satara.domain import Archive, ArchiveName, EntryName
 
-# A small pool makes collisions, and collisions with generated names, common.
+# A small pool makes collisions, and collisions with generated names, common. The pool spells
+# some names in two cases or two Unicode forms; escapes show the forms apart.
 pooled_names = st.builds(
     lambda stem, extensions: stem + extensions,
-    st.sampled_from(["foo", "foo-2", "bar", ".bashrc"]),
+    st.sampled_from(
+        ["foo", "Foo", "foo-2", "FOO-2", "bar", ".bashrc", "caf\u00e9", "cafe\u0301"]
+    ),
     st.sampled_from(["", ".txt", ".tar.gz"]),
 )
 free_names = st.text(
@@ -89,6 +92,9 @@ def test_an_unnamed_archive_is_named_after_the_time_it_was_created():
         ([".bashrc", ".bashrc"], [".bashrc", ".bashrc-2"]),
         (["foo-2.txt", "foo-2.txt"], ["foo-2.txt", "foo-2-2.txt"]),
         (["foo.txt", "foo.txt", "foo-2.txt"], ["foo.txt", "foo-2.txt", "foo-2-2.txt"]),
+        (["Report.txt", "report.txt"], ["Report.txt", "report-2.txt"]),
+        (["caf\u00e9.txt", "cafe\u0301.txt"], ["caf\u00e9.txt", "cafe\u0301-2.txt"]),
+        (["a.txt", "A-2.txt", "A.txt"], ["a.txt", "A-2.txt", "A-3.txt"]),
     ],
     ids=[
         "extension",
@@ -97,6 +103,9 @@ def test_an_unnamed_archive_is_named_after_the_time_it_was_created():
         "leading dot",
         "already numbered",
         "numbered name taken first",
+        "differing in case",
+        "differing in Unicode form",
+        "numbered name differing in case",
     ],
 )
 def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected):
@@ -127,7 +136,7 @@ def test_archive_never_holds_two_files_under_one_name(memory_content, added):
     for entry_name in added:
         archive.add(entry_name, memory_content(b""))
 
-    held = [entry.name for entry in archive.entries]
+    held = [entry.name.folded for entry in archive.entries]
     assert len(set(held)) == len(held)
 
 

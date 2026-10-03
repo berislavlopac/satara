@@ -223,6 +223,14 @@ than NUL alone, also keeps line breaks and terminal escapes out of names.
 A property test writes names drawn from all of Unicode and checks that each comes back from
 the archive unchanged, so any other character the format alters would show up there.
 
+### Names that differ only in case or Unicode form clash
+
+Names that differ only in letter case, or only in how Unicode spells the same character (an
+accented letter as one character, or as a letter followed by a combining accent), count as the
+same name, so the second is renamed.
+The renaming rule exists so that extracting an archive replaces no file, and the default file
+systems of macOS and Windows treat such names as one. Each file keeps its own spelling.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
