@@ -7,6 +7,7 @@ from pydantic import ByteSize, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 MIB = 2**20
+GIB = 2**30
 
 type Size = Annotated[ByteSize, Field(gt=0)]
 """A size in bytes. Read from the environment, it may carry a unit: `50MiB`, `200MB`."""
@@ -37,6 +38,18 @@ class Settings(BaseSettings):
 
     DEFERRED_ENABLED: bool = False
     """Whether the deferred flow's endpoints are served."""
+
+    DEFERRED_MAX_FILES: Annotated[int, Field(gt=0)] = 1000
+    """The most files one deferred archive may hold."""
+
+    DEFERRED_MAX_FILE_SIZE: Annotated[Size, Field(le=5 * GIB)] = ByteSize(5 * GIB)
+    """The largest size of a file in a deferred archive; up to 5 GiB.
+
+    S3 takes at most 5 GiB in one upload.
+    """
+
+    DEFERRED_MAX_TOTAL_SIZE: Size = ByteSize(50 * GIB)
+    """The largest total size of the files in one deferred archive."""
 
     BUCKET: str = "satara-archive-deferred-flow-storage"
     """The bucket that holds the deferred flow's archives."""
