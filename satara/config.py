@@ -27,6 +27,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    DEBUG: bool = False
+    """Whether to run in debug mode; never in production.
+
+    Every logger, the libraries' included, logs at debug level; the web framework returns a
+    traceback in the body of an unhandled error's 500 response; asyncio reports coroutines
+    never awaited and steps that block its event loop; and the full settings are logged at
+    start-up.
+    """
+
     MAX_FILES: Annotated[int, Field(gt=0, le=1000)] = 100
     """The most files one request may upload; up to 1000, as the form parser refuses more."""
 

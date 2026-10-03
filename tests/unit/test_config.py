@@ -51,10 +51,10 @@ def test_settings_accept_a_thousand_files(monkeypatch):
     assert settings.MAX_FILES == 1000
 
 
-def test_settings_leave_the_deferred_flow_off_by_default():
+def test_settings_leave_the_deferred_flow_and_debug_mode_off_by_default():
     settings = Settings(_env_file=None)
 
-    assert settings.DEFERRED_ENABLED is False
+    assert (settings.DEFERRED_ENABLED, settings.DEBUG) == (False, False)
 
 
 @pytest.mark.parametrize(

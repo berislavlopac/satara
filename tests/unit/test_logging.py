@@ -1,7 +1,9 @@
 import json
 import logging
 
-from satara.common.logging import silence_access_log
+import pytest
+
+from satara.common.logging import configure_logging, silence_access_log
 
 
 def test_web_server_logs_are_rendered_as_JSON(caplog):
@@ -35,3 +37,36 @@ def test_web_server_access_log_leaves_out_a_silenced_path(caplog):
 
     paths = [record.args[2] for record in caplog.records]
     assert paths == ["/archives", "/healthy"]
+
+
+@pytest.fixture
+def logging_configured_for():
+    """Configure logging for or against debug mode, and restore the default afterwards."""
+    yield configure_logging
+    configure_logging(debug=False)
+
+
+@pytest.mark.parametrize(
+    ("debug", "expected"),
+    [(True, logging.DEBUG), (False, logging.WARNING)],
+    ids=["debug mode", "otherwise"],
+)
+def test_logging_lowers_the_loggers_of_libraries_only_in_debug_mode(
+    logging_configured_for, debug, expected
+):
+    logging_configured_for(debug=debug)
+
+    levels = {logging.getLogger(name).level for name in ["botocore", "aiobotocore", "urllib3"]}
+
+    assert levels == {expected}
+
+
+def test_logging_logs_everything_at_debug_level_in_debug_mode(logging_configured_for):
+    logging_configured_for(debug=True)
+
+    levels = {
+        logging.getLogger(name).getEffectiveLevel()
+        for name in ["satara.anything", "uvicorn.access", "uvicorn.error"]
+    }
+
+    assert levels == {logging.DEBUG}
