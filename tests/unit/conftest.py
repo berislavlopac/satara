@@ -2,12 +2,16 @@ import pytest
 
 from tests.unit.fakes import (
     FailingBroker,
+    FailingHandler,
     MemoryArchiveRepository,
     MemoryContent,
     MemoryFileStorage,
     MemoryQueue,
+    OtherEvent,
     RecordingBroker,
+    RecordingHandler,
     RecordingWriter,
+    SampleEvent,
 )
 
 
@@ -46,3 +50,26 @@ def failing_broker():
 def memory_queue():
     """The in-memory queue class, built by each test with its own batches."""
     return MemoryQueue
+
+
+@pytest.fixture
+def sample_event():
+    """The event class for tests, with a label to tell events apart."""
+    return SampleEvent
+
+
+@pytest.fixture
+def other_event():
+    """An event class other than the sample one."""
+    return OtherEvent
+
+
+@pytest.fixture
+def recording_handler():
+    """The handler class that notes each event it handles in a log it is given."""
+    return RecordingHandler
+
+
+@pytest.fixture
+def failing_handler():
+    return FailingHandler()
