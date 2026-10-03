@@ -131,7 +131,9 @@ declared. The archive's name follows the same rules too.
 
 `PUT` each file's content to its URL, for example with `curl --upload-file notes.txt '<url>'`.
 Storage accepts a body of exactly the declared size and refuses any other, and a URL expires
-after an hour by default. Files can be uploaded in any order, and at the same time.
+after an hour by default. Files can be uploaded in any order, and at the same time. There is
+no way to get a fresh upload URL, so an archive whose files are not all uploaded in time stays
+`pending`; create a new one instead.
 
 ### Fetch the archive
 

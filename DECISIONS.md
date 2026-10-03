@@ -421,8 +421,11 @@ redrive policy, the consumer records the build as failed. A stop signal ends the
 the current batch.
 
 Extending the visibility timeout during a build was dropped as more machinery than this
-needs. The queue instead hides a received message for 30 minutes, enough to build an archive
-of the default 50 GiB; the cost is that after a crash the retry waits up to that long. A
+needs. The queue instead hides a received message for 30 minutes; the cost is that after a
+crash the retry waits up to that long. A build can take longer: compressing 50 GiB alone took
+about 17 minutes in a measurement, before the reading and writing. That does no harm with one
+consumer, which receives nothing more until it has finished its batch and deleted the batch's
+messages, so a message whose timeout ran out during its build is not delivered twice. A
 production consumer would extend the timeout while it works, and start with a shorter one.
 
 The consumer serves nothing, so the image's HTTP health check does not fit it. A daemon thread
