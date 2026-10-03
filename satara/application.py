@@ -118,8 +118,6 @@ class ArchiveService:
             NoFilesError: No files were sent.
             TooManyFilesError: More files were sent than the limit allows.
             FileTooLargeError: A file is larger than the limit allows.
-            InvalidArchiveNameError: The requested archive name breaks the rules.
-            InvalidFileNameError: A file's name leaves nothing usable.
         """
         files = command.files
         if not files:
