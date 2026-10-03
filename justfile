@@ -72,13 +72,15 @@ down:
 
 # Archive files with the running service in one request: `just archive a.txt --name report`.
 [group('Try it')]
+[positional-arguments]
 archive +arguments:
-    uv run python scripts/archive.py {{ arguments }}
+    @uv run python scripts/archive.py "$@"
 
 # Archive files through the deferred flow: upload to storage, then fetch the built archive.
 [group('Try it')]
+[positional-arguments]
 archive-deferred +arguments:
-    uv run python scripts/archive.py --deferred {{ arguments }}
+    @uv run python scripts/archive.py --deferred "$@"
 
 # Build the Docker image.
 [group('Docker')]
