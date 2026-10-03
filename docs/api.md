@@ -1,5 +1,13 @@
 # Using the API
 
+The service packs files into a ZIP archive in one of two ways:
+
+- **Directly**: the client sends its files in one request and receives the archive in the
+  response. This suits a modest number of fairly small files.
+- **Deferred**: the client declares its files, uploads each straight to storage, and fetches
+  the archive once it has been built. This takes many more files, and much larger ones. It is
+  served only when switched on; see [Running it](operations.md#the-deferred-flow).
+
 ## Archive files
 
 `POST /archive-files` takes files as `multipart/form-data` and returns them packed into a ZIP
@@ -89,6 +97,72 @@ A body too large is refused as soon as that is known: at once when its declared
 `Content-Length` is over the limit, and otherwise as soon as the bytes received pass it, before
 the rest is read. The first case is answered in plain text, `Content Too Large`, rather than
 JSON.
+
+## Deferred archives
+
+### Create an archive
+
+`POST /archives` takes a JSON body naming the archive and declaring each file to be uploaded.
+
+| Field   | Required | Content                                                            |
+|---------|----------|--------------------------------------------------------------------|
+| `files` | yes      | The files, each as `{"name": ..., "size": ...}`, size in bytes.    |
+| `name`  | no       | The name of the archive, without the `.zip` suffix.                |
+
+```shell
+curl --json '{"name": "report", "files": [{"name": "notes.txt", "size": 6}]}' \
+    http://localhost:8000/archives
+```
+
+It answers `201`, with the status URL also in the `Location` header:
+
+```json
+{
+  "archive_id": "0199a9f4-7c1e-7d3a-9a51-3c2b7e0d4f10",
+  "status_url": "http://localhost:8000/archives/0199a9f4-7c1e-7d3a-9a51-3c2b7e0d4f10",
+  "uploads": [{"name": "notes.txt", "url": "http://localhost:4566/..."}]
+}
+```
+
+Files are named as in the direct flow, so a name in `uploads` may differ from the one
+declared. The archive's name follows the same rules too.
+
+### Upload the files
+
+`PUT` each file's content to its URL, for example with `curl --upload-file notes.txt '<url>'`.
+Storage accepts a body of exactly the declared size and refuses any other, and a URL expires
+after an hour by default. Files can be uploaded in any order, and at the same time.
+
+### Fetch the archive
+
+`GET /archives/{id}`, the status URL, reports how far the archive has got:
+
+```json
+{
+  "archive_id": "0199a9f4-7c1e-7d3a-9a51-3c2b7e0d4f10",
+  "status": "ready",
+  "files_received": 1,
+  "files_expected": 1,
+  "download_url": "http://localhost:4566/..."
+}
+```
+
+| Status    | Meaning                                                                          |
+|-----------|----------------------------------------------------------------------------------|
+| `pending` | Not built yet: files are still to arrive, or the archive is being built.         |
+| `ready`   | Built; `download_url` serves it as `<name>.zip`.                                 |
+| `failed`  | Every file arrived, but the archive could not be built in any attempt.           |
+
+The archive is built in the background once its last file arrives, so poll the status URL
+until it is no longer `pending`. A download URL expires like an upload URL; asking for the
+status again gives a fresh one.
+
+### Refusals
+
+`POST /archives` is refused as the direct flow's endpoint is, with 413 for a broken limit
+and 422 for an unusable name or no files, but the limits are the deferred flow's own and the
+total size is that of the declared files. `GET /archives/{id}` answers 404 for an ID no
+archive has, and 422 for one that is not a UUID.
 
 ## Health check
 
