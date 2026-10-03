@@ -1,9 +1,9 @@
 # The exercise
 
-Satara was written as a take-home exercise for a senior backend engineering role. The brief is
-in [take-home-exercise.pdf](take-home-exercise.pdf): build a file-zipping REST API with FastAPI
-as a proof of concept that will go live and grow, provide a Docker image and a CI/CD pipeline,
-and describe a way of developing software with AI assistance.
+Satara Archiver was written as a take-home exercise for a senior backend engineering role. The
+brief is in [take-home-exercise.pdf](take-home-exercise.pdf): build a file-zipping REST API with
+FastAPI as a proof of concept that will go live and grow, provide a Docker image and a CI/CD
+pipeline, and describe a way of developing software with AI assistance.
 
 The decisions behind the solution, including those since corrected, are recorded as they were
 made in [DECISIONS.md](https://github.com/berislavlopac/satara/blob/main/DECISIONS.md).

@@ -1,1 +1,1 @@
-"""Satara: packs uploaded files into a ZIP archive."""
+"""Satara Archiver: packs uploaded files into a ZIP archive."""

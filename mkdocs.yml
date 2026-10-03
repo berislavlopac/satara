@@ -1,4 +1,4 @@
-site_name: Satara Documentation
+site_name: Satara Archiver
 site_description: A service that packs uploaded files into a ZIP archive.
 site_author: Berislav Lopac <berislav@lopac.net>
 repo_url: https://github.com/berislavlopac/satara

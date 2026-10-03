@@ -10,7 +10,7 @@ or on anything that speaks their protocols, such as the emulator in the local st
 C4Context
     title System context
     Person(client, "Client", "Has files to pack into a ZIP archive")
-    System(satara, "Satara", "Packs files into ZIP archives, in one request or as a job")
+    System(satara, "Satara Archiver", "Packs files into ZIP archives, in one request or as a job")
     System_Ext(aws, "AWS S3 and SQS", "Object storage and message queues")
     Rel(client, satara, "Archives files, follows archives", "HTTPS")
     Rel(client, aws, "Uploads files, downloads archives", "Presigned URLs")
@@ -25,7 +25,7 @@ which builds deferred archives. The direct flow needs only the API.
 C4Container
     title Containers
     Person(client, "Client")
-    System_Boundary(satara, "Satara") {
+    System_Boundary(satara, "Satara Archiver") {
         Container(api, "API", "Python, FastAPI", "Both flows' endpoints; signs storage URLs")
         Container(consumer, "Consumer", "Python", "Builds an archive once its files arrive")
     }
