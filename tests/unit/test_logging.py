@@ -1,7 +1,7 @@
 import json
 import logging
 
-import satara.common.logging  # noqa: F401 - configures logging when imported
+from satara.common.logging import silence_access_log
 
 
 def test_web_server_logs_are_rendered_as_JSON(caplog):
@@ -12,14 +12,26 @@ def test_web_server_logs_are_rendered_as_JSON(caplog):
     """
     access = logging.getLogger("uvicorn.access")
     with caplog.at_level(logging.INFO, logger=access.name):
-        access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", "/health", "1.1", 200)
+        access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", "/archives", "1.1", 200)
 
     [record] = caplog.records
     rendered = json.loads(access.handlers[0].format(record))
 
     assert rendered.keys() == {"event", "logger", "level", "timestamp"}
     assert (rendered["event"], rendered["logger"], rendered["level"]) == (
-        '10.0.0.1:5000 - "GET /health HTTP/1.1" 200',
+        '10.0.0.1:5000 - "GET /archives HTTP/1.1" 200',
         "uvicorn.access",
         "info",
     )
+
+
+def test_web_server_access_log_leaves_out_a_silenced_path(caplog):
+    access = logging.getLogger("uvicorn.access")
+    silence_access_log("/health")
+
+    with caplog.at_level(logging.INFO, logger=access.name):
+        for path in ["/health", "/health?verbose=1", "/archives", "/healthy"]:
+            access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", path, "1.1", 200)
+
+    paths = [record.args[2] for record in caplog.records]
+    assert paths == ["/archives", "/healthy"]

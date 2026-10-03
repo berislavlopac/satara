@@ -54,6 +54,33 @@ def configure_logging() -> None:
     _configured = True
 
 
+class _AccessPathFilter(logging.Filter):
+    """Drops the access log records of requests for one path, with or without a query."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__()
+        self._path = path
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # The server's access records carry the client, method, path, HTTP version and status.
+        args = record.args if isinstance(record.args, tuple) else ()
+        return len(args) < 3 or str(args[2]).partition("?")[0] != self._path  # noqa: PLR2004
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, _AccessPathFilter) and other._path == self._path
+
+    def __hash__(self) -> int:
+        return hash(self._path)
+
+
+def silence_access_log(path: str) -> None:
+    """Leave requests for `path` out of the web server's access log.
+
+    Idempotent: a path silenced twice is filtered once.
+    """
+    logging.getLogger("uvicorn.access").addFilter(_AccessPathFilter(path))
+
+
 def get_logger(name: str) -> unclogger.Unclogger:
     """Return a structured logger, used like a standard one.
 

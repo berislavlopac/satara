@@ -11,7 +11,7 @@ from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 from satara.application.base import Limits, UploadRejectedError
 from satara.application.deferred import ArchiveBuilder, DeferredArchiveService
 from satara.application.direct import ArchiveService
-from satara.common.logging import get_logger
+from satara.common.logging import get_logger, silence_access_log
 from satara.common.middleware import PathBodyLimitMiddleware
 from satara.config import Settings
 from satara.domain import AllFilesReceived, ArchiveNotFoundError
@@ -139,6 +139,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(router)
     if settings.DEFERRED_ENABLED:
         app.include_router(deferred_router)
+    # The container's health check calls it every 30 seconds, which would swamp the access log.
+    silence_access_log("/health")
     log.info(
         "Service configured.",
         deferred_enabled=settings.DEFERRED_ENABLED,
