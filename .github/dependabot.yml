@@ -1,5 +1,5 @@
 # Weekly update pull requests, one per ecosystem, for everything pinned: the actions, the
-# Docker base images and the locked Python dependencies.
+# Docker base images, the images in the Compose stack and the locked Python dependencies.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -16,6 +16,14 @@ updates:
       interval: weekly
     groups:
       images:
+        patterns: ["*"]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      compose:
         patterns: ["*"]
 
   - package-ecosystem: uv

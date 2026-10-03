@@ -12,6 +12,11 @@ help:
 test:
     uv run --all-groups pytest --spec
 
+# Run the integration tests against the local Compose stack (`docker compose up -d`).
+[group('Testing')]
+test-integration:
+    uv run --all-groups pytest --spec -m integration tests/integration
+
 # Run the unit tests with a coverage report.
 [group('Testing')]
 test-cov:

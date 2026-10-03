@@ -1,0 +1,26 @@
+# The deferred flow's storage, run locally: an S3 and SQS emulator, and a one-off step that
+# creates the bucket and the queues. The credentials are the emulator's placeholders.
+
+x-aws: &aws
+  AWS_ENDPOINT_URL: http://storage:4566
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_DEFAULT_REGION: us-east-1
+
+services:
+  storage:
+    image: ministackorg/ministack:1.5.21
+    ports:
+      - "4566:4566"
+
+  storage-setup:
+    image: amazon/aws-cli:2.37.9
+    depends_on:
+      - storage
+    environment:
+      <<: *aws
+      BUCKET: satara-archive-deferred-flow-storage
+      QUEUE: satara-uploads
+    volumes:
+      - ./compose/storage-setup.sh:/storage-setup.sh:ro
+    entrypoint: ["sh", "/storage-setup.sh"]
