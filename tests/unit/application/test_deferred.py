@@ -10,11 +10,13 @@ from satara.application.base import (
     TotalTooLargeError,
 )
 from satara.application.deferred import (
+    ArchiveBuilder,
     CheckUploadsCommand,
     CreateArchiveCommand,
     DeclaredFile,
     DeferredArchiveService,
     GetArchiveStatusCommand,
+    RecordBuildFailureCommand,
 )
 from satara.domain import AllFilesReceived, ArchiveID, ArchiveNotFoundError, ArchiveStatus
 
@@ -154,3 +156,36 @@ async def test_check_uploads_publishes_nothing_while_a_file_is_missing(
     await service.check_uploads(CheckUploadsCommand(archive_id=archive.archive_id))
 
     assert broker.published == []
+
+
+async def test_record_build_failure_marks_a_complete_archive_failed(service, repository):
+    archive = await create_archive_of_two(service, repository)
+    for entry in archive.entries:
+        archive.receive(entry.name)
+
+    await service.record_build_failure(RecordBuildFailureCommand(archive_id=archive.archive_id))
+
+    assert archive.status == ArchiveStatus.FAILED
+
+
+async def test_record_build_failure_leaves_an_incomplete_archive_pending(service, repository):
+    """Leaves it pending, since a later upload can still complete it."""
+    archive = await create_archive_of_two(service, repository)
+    archive.receive(archive.entries[0].name)
+
+    await service.record_build_failure(RecordBuildFailureCommand(archive_id=archive.archive_id))
+
+    assert archive.status == ArchiveStatus.PENDING
+
+
+async def test_archive_builder_stores_the_archive_written_from_the_uploaded_files(
+    service, repository, storage, recording_writer
+):
+    archive = await create_archive_of_two(service, repository)
+    storage.files[archive.archive_id, 0] = b"a"
+    storage.files[archive.archive_id, 1] = b"bc"
+    builder = ArchiveBuilder(repository, storage, recording_writer)
+
+    await builder.handle(AllFilesReceived(archive_id=archive.archive_id))
+
+    assert storage.archives[archive.archive_id] == ("application/x-recorded", b"abc")

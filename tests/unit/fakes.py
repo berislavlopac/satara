@@ -62,6 +62,9 @@ class MemoryArchiveRepository(ArchiveRepository):
     async def add(self, archive: Archive) -> None:
         self.archives[archive.archive_id] = archive
 
+    async def mark_failed(self, archive_id: ArchiveID) -> None:
+        (await self.get(archive_id)).mark_failed()
+
     async def get(self, archive_id: ArchiveID) -> Archive:
         try:
             return self.archives[archive_id]

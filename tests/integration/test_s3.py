@@ -144,3 +144,10 @@ async def test_storage_signs_each_URL_for_the_address_clients_reach_it_by(
     assert urlsplit(url).netloc == "127.0.0.1:4566"
     assert response.status_code == HTTPStatus.OK
     assert [str(entry.name) for entry in loaded.received] == ["a.txt"]
+
+
+async def test_repository_marks_an_archive_failed_once_told_so(repository, archive):
+    await repository.mark_failed(archive.archive_id)
+
+    loaded = await repository.get(archive.archive_id)
+    assert loaded.status == "failed"

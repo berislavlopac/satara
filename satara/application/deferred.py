@@ -12,6 +12,7 @@ from satara.application.base import (
 from satara.common.events import EventBroker
 from satara.common.models import FrozenModel
 from satara.domain import (
+    AllFilesReceived,
     Archive,
     ArchiveID,
     ArchiveRepository,
@@ -81,6 +82,13 @@ class GetArchiveStatusResult(Result):
 
 class CheckUploadsCommand(Command):
     """A request to check whether all of an archive's files have arrived."""
+
+    archive_id: ArchiveID
+    """The identity of the archive."""
+
+
+class RecordBuildFailureCommand(Command):
+    """A report that building an archive failed for the last time it will be tried."""
 
     archive_id: ArchiveID
     """The identity of the archive."""
@@ -180,3 +188,40 @@ class DeferredArchiveService:
         archive = await self._repository.get(command.archive_id)
         archive.check_complete()
         await self._broker.publish(archive.pull_events())
+
+    async def record_build_failure(self, command: RecordBuildFailureCommand) -> None:
+        """Mark an archive failed, if every file has arrived and it is not built.
+
+        A failure before every file has arrived leaves the archive pending, since a later
+        upload can still complete it.
+
+        Args:
+            command: The archive whose build failed.
+        """
+        archive = await self._repository.get(command.archive_id)
+        if archive.is_complete and not archive.is_built:
+            await self._repository.mark_failed(command.archive_id)
+
+
+class ArchiveBuilder:
+    """Builds an archive once all its files have arrived, and stores it."""
+
+    def __init__(
+        self, repository: ArchiveRepository, storage: FileStorage, writer: ArchiveWriter
+    ) -> None:
+        """Set up the builder.
+
+        Args:
+            repository: Keeps the archives.
+            storage: Holds the files' content, and receives the built archive.
+            writer: Writes the archive in its format.
+        """
+        self._repository = repository
+        self._storage = storage
+        self._writer = writer
+
+    async def handle(self, event: AllFilesReceived) -> None:
+        """Build the archive, reading each file from storage as the archive is written."""
+        archive = await self._repository.get(event.archive_id)
+        chunks = self._writer.write(archive)
+        await self._storage.save_archive(archive.archive_id, self._writer.media_type, chunks)
