@@ -15,10 +15,11 @@ dead_letter_url=$(aws sqs create-queue --queue-name "$QUEUE-dead-letter" \
 dead_letter_arn=$(aws sqs get-queue-attributes --queue-url "$dead_letter_url" \
     --attribute-names QueueArn --query Attributes.QueueArn --output text)
 
-# A message received three times without being deleted moves to the dead-letter queue.
+# A message stays hidden for 30 minutes once received, long enough for a build, and moves to
+# the dead-letter queue after three receives without being deleted.
 cat > /tmp/queue.json <<JSON
 {
-  "VisibilityTimeout": "60",
+  "VisibilityTimeout": "1800",
   "RedrivePolicy": "{\"deadLetterTargetArn\": \"$dead_letter_arn\", \"maxReceiveCount\": \"3\"}"
 }
 JSON

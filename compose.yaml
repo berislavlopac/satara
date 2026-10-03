@@ -1,5 +1,6 @@
-# The deferred flow, run locally: the API, an S3 and SQS emulator, and a one-off step that
-# creates the bucket and the queues. The credentials are the emulator's placeholders.
+# The deferred flow, run locally: the API, the queue consumer, an S3 and SQS emulator, and a
+# one-off step that creates the bucket and the queues. The credentials are the emulator's
+# placeholders.
 
 x-aws: &aws
   AWS_ENDPOINT_URL: http://storage:4566
@@ -37,3 +38,27 @@ services:
       SATARA_DEFERRED_ENABLED: "true"
       # Presigned URLs must name the address a client on the host reaches storage by.
       SATARA_STORAGE_PUBLIC_URL: http://localhost:4566
+
+  consumer:
+    build: .
+    command: ["python", "-m", "satara.presentation.consumer"]
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    environment:
+      <<: *aws
+    restart: unless-stopped
+    # Replaces the image's HTTP check: the consumer serves nothing, and instead touches a
+    # heartbeat file every 15 seconds.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import pathlib, sys, tempfile, time;
+          beat = pathlib.Path(tempfile.gettempdir(), "satara-consumer-alive");
+          sys.exit(time.time() - beat.stat().st_mtime > 60)
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
