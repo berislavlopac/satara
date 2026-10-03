@@ -1,13 +1,14 @@
 """Domain model: archives and the files in them.
 
 An archive collects files under names that are unique within it, and has a name of its own.
-This module holds the rules for those names. The format an archive is written in is not part
-of the model.
+This module holds the rules for those names, and for when an archive whose files arrive after
+it is created is complete. The format an archive is written in is not part of the model.
 """
 
 import unicodedata
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import PureWindowsPath
 from typing import Annotated, Protocol, Self
 
@@ -15,11 +16,13 @@ from pydantic import (
     AfterValidator,
     ConfigDict,
     Field,
+    NonNegativeInt,
     PrivateAttr,
     SkipValidation,
     model_validator,
 )
 
+from satara.common.events import DomainEvent
 from satara.common.models import Entity, IDModel, ValueObject
 
 
@@ -90,6 +93,8 @@ class ArchiveEntry(ValueObject):
 
     name: EntryName
     """The name of the file in the archive."""
+    size: NonNegativeInt
+    """The size of the file in bytes."""
     content: SkipValidation[Content]
     """The bytes of the file."""
 
@@ -121,6 +126,22 @@ class ArchiveID(IDModel):
     """The identity of an archive, assigned when the archive is created."""
 
 
+class ArchiveStatus(StrEnum):
+    """How far an archive has got."""
+
+    PENDING = "pending"
+    """Not built yet; files may still be arriving."""
+    READY = "ready"
+    """Built, and ready to be fetched."""
+
+
+class AllFilesReceived(DomainEvent):
+    """Every file an archive holds has arrived, so the archive can be built."""
+
+    archive_id: ArchiveID
+    """The archive whose files have all arrived."""
+
+
 class Archive(Entity):
     """A collection of files to be packed together, each under a name of its own.
 
@@ -128,6 +149,9 @@ class Archive(Entity):
     Unicode form count as the same, as many file systems treat them. A file whose name is
     already taken is renamed when it is added, never dropped and never replacing another. Files
     keep the order in which they were added.
+
+    A file's content may arrive after the file is added. Once every file has arrived, the
+    archive can be built; after that it is ready.
     """
 
     archive_id: Annotated[ArchiveID, Field(default_factory=ArchiveID.generate)]
@@ -137,6 +161,10 @@ class Archive(Entity):
 
     _entries: dict[str, ArchiveEntry] = PrivateAttr(default_factory=dict)
     """The entries, keyed by their folded names."""
+    _received: set[str] = PrivateAttr(default_factory=set)
+    """The folded names of the entries whose content has arrived."""
+    _is_built: bool = PrivateAttr(default=False)
+    """Whether the archive has been built."""
 
     @property
     def identity(self) -> ArchiveID:
@@ -147,13 +175,28 @@ class Archive(Entity):
         """The files in the archive, in the order they were added."""
         return tuple(self._entries.values())
 
+    @property
+    def received(self) -> tuple[ArchiveEntry, ...]:
+        """The files whose content has arrived, in the order they were added."""
+        return tuple(entry for key, entry in self._entries.items() if key in self._received)
+
+    @property
+    def is_built(self) -> bool:
+        """Whether the archive has been built."""
+        return self._is_built
+
+    @property
+    def status(self) -> ArchiveStatus:
+        """How far the archive has got."""
+        return ArchiveStatus.READY if self._is_built else ArchiveStatus.PENDING
+
     def __contains__(self, name: object) -> bool:
         return isinstance(name, EntryName) and name.folded in self._entries
 
     def __len__(self) -> int:
         return len(self._entries)
 
-    def add(self, name: EntryName, content: Content) -> ArchiveEntry:
+    def add(self, name: EntryName, size: int, content: Content) -> ArchiveEntry:
         """Add a file under its name, or under a numbered form of the name if it is taken.
 
         The number is the smallest from 2 up that gives a free name, so a second `foo.txt`
@@ -161,6 +204,7 @@ class Archive(Entity):
 
         Args:
             name: The name the file should have.
+            size: The size of the file in bytes.
             content: The bytes of the file.
 
         Returns:
@@ -171,9 +215,31 @@ class Archive(Entity):
         while unique_name in self:
             unique_name = name.with_counter(counter)
             counter += 1
-        entry = ArchiveEntry(name=unique_name, content=content)
+        entry = ArchiveEntry(name=unique_name, size=size, content=content)
         self._entries[unique_name.folded] = entry
         return entry
+
+    def receive(self, name: EntryName) -> None:
+        """Note that the content of the file under `name` has arrived.
+
+        Raises:
+            KeyError: The archive holds no file under `name`.
+        """
+        if name not in self:
+            raise KeyError(f"The archive holds no file named {str(name)!r}")
+        self._received.add(name.folded)
+
+    def mark_built(self) -> None:
+        """Note that the archive has been built."""
+        self._is_built = True
+
+    def check_complete(self) -> None:
+        """Record `AllFilesReceived` if every file has arrived and the archive is not built.
+
+        Each call checks afresh, so two calls on a complete archive record the event twice.
+        """
+        if not self._is_built and len(self._received) == len(self._entries):
+            self.record_event(AllFilesReceived(archive_id=self.archive_id))
 
 
 class ArchiveWriter(Protocol):

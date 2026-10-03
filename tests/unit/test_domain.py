@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, strategies as st
 from pydantic import ValidationError
 
-from satara.domain import Archive, ArchiveName, EntryName
+from satara.domain import AllFilesReceived, Archive, ArchiveName, ArchiveStatus, EntryName
 
 # A small pool makes collisions, and collisions with generated names, common. The pool spells
 # some names in two cases or two Unicode forms; escapes show the forms apart.
@@ -112,7 +112,7 @@ def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected
     archive = Archive()
 
     for value in added:
-        archive.add(EntryName.model_validate(value), memory_content(b""))
+        archive.add(EntryName.model_validate(value), 0, memory_content(b""))
 
     assert [str(entry.name) for entry in archive.entries] == expected
 
@@ -123,7 +123,7 @@ def test_archive_keeps_every_file_in_the_order_it_was_added(memory_content, adde
     contents = [memory_content(b"") for _ in added]
 
     for entry_name, content in zip(added, contents, strict=True):
-        archive.add(entry_name, content)
+        archive.add(entry_name, 0, content)
 
     assert len(archive) == len(added)
     assert [entry.content for entry in archive.entries] == contents
@@ -134,7 +134,7 @@ def test_archive_never_holds_two_files_under_one_name(memory_content, added):
     archive = Archive()
 
     for entry_name in added:
-        archive.add(entry_name, memory_content(b""))
+        archive.add(entry_name, 0, memory_content(b""))
 
     held = [entry.name.folded for entry in archive.entries]
     assert len(set(held)) == len(held)
@@ -147,7 +147,7 @@ def test_archive_renames_a_file_only_when_its_name_is_taken(memory_content, adde
 
     for entry_name in added:
         taken.append(entry_name in archive)
-        entry = archive.add(entry_name, memory_content(b""))
+        entry = archive.add(entry_name, 0, memory_content(b""))
         renamed.append(entry.name != entry_name)
 
     assert renamed == taken
@@ -164,6 +164,79 @@ def test_archive_keeps_its_identity_as_files_are_added(memory_content):
     archive = Archive()
     known = {archive}
 
-    archive.add(EntryName.model_validate("foo.txt"), memory_content(b""))
+    archive.add(EntryName.model_validate("foo.txt"), 0, memory_content(b""))
 
     assert archive in known
+
+
+@pytest.fixture
+def archive_of_two(memory_content):
+    archive = Archive()
+    archive.add(EntryName.model_validate("a.txt"), 1, memory_content(b"a"))
+    archive.add(EntryName.model_validate("b.txt"), 1, memory_content(b"b"))
+    return archive
+
+
+def summarise(events):
+    return [(type(event), event.archive_id) for event in events]
+
+
+def test_archive_records_that_all_files_were_received_once_each_has_arrived(archive_of_two):
+    archive_of_two.receive(EntryName.model_validate("a.txt"))
+    archive_of_two.receive(EntryName.model_validate("B.TXT"))
+
+    archive_of_two.check_complete()
+
+    events = archive_of_two.pull_events()
+    assert summarise(events) == [(AllFilesReceived, archive_of_two.archive_id)]
+
+
+def test_archive_records_nothing_while_a_file_is_missing(archive_of_two):
+    archive_of_two.receive(EntryName.model_validate("a.txt"))
+
+    archive_of_two.check_complete()
+
+    assert archive_of_two.pull_events() == []
+
+
+def test_archive_records_nothing_once_it_is_built(archive_of_two):
+    for entry in archive_of_two.entries:
+        archive_of_two.receive(entry.name)
+    archive_of_two.mark_built()
+
+    archive_of_two.check_complete()
+
+    assert archive_of_two.pull_events() == []
+
+
+def test_archive_hands_out_each_recorded_event_once(archive_of_two):
+    for entry in archive_of_two.entries:
+        archive_of_two.receive(entry.name)
+    archive_of_two.check_complete()
+    archive_of_two.pull_events()
+
+    events = archive_of_two.pull_events()
+
+    assert events == []
+
+
+def test_archive_refuses_to_receive_a_file_it_does_not_hold(archive_of_two):
+    with pytest.raises(KeyError):
+        archive_of_two.receive(EntryName.model_validate("c.txt"))
+
+
+def test_archive_lists_the_files_received_in_the_order_they_were_added(archive_of_two):
+    archive_of_two.receive(EntryName.model_validate("b.txt"))
+    archive_of_two.receive(EntryName.model_validate("a.txt"))
+
+    received = archive_of_two.received
+
+    assert [str(entry.name) for entry in received] == ["a.txt", "b.txt"]
+
+
+def test_archive_is_pending_until_built_and_ready_after(archive_of_two):
+    before = archive_of_two.status
+
+    archive_of_two.mark_built()
+
+    assert (before, archive_of_two.status) == (ArchiveStatus.PENDING, ArchiveStatus.READY)
