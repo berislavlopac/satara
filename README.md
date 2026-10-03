@@ -28,8 +28,8 @@ emulator standing in for S3 and SQS:
 docker compose up -d --build --wait
 ```
 
-[Getting started](docs/getting-started.md) walks through creating an archive, uploading its
-files and downloading the result.
+[Getting started](docs/getting-started.md) shows how to try both flows, with
+`just archive` and `just archive-deferred`.
 
 For development, with [uv](https://docs.astral.sh/uv/):
 
@@ -43,8 +43,9 @@ uv run just serve
 
 The documentation is in [`docs/`](docs/index.md), and is built as a site with
 `uv run just docs`, served at <http://localhost:7000>. It covers
-[getting started](docs/getting-started.md), [using the API](docs/api.md),
-[running the service](docs/operations.md) and [how it's built](docs/architecture.md).
+[getting started](docs/getting-started.md), [the API](docs/api.md),
+[configuration](docs/configuration.md), [deployment](docs/deployment.md),
+[CI and quality checks](docs/ci.md) and [the architecture](docs/architecture.md).
 
 ## Decisions and trade-offs
 

@@ -1,4 +1,4 @@
-# How it's built
+# Architecture
 
 ## Layers
 

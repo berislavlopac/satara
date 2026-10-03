@@ -53,10 +53,12 @@ markdown_extensions:
 # changing it, and someone assessing it as a take-home exercise. The AI write-up stands on its
 # own: it describes the author's general practice, not only this project.
 nav:
-  - Home: index.md
+  - Overview: index.md
   - Getting started: getting-started.md
-  - Using the API: api.md
-  - Running it: operations.md
-  - How it's built: architecture.md
+  - API: api.md
+  - Configuration: configuration.md
+  - Deployment: deployment.md
+  - CI and quality checks: ci.md
+  - Architecture: architecture.md
   - AI-assisted development: ai-assisted-development.md
   - The exercise: exercise.md

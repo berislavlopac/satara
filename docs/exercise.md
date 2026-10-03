@@ -10,12 +10,12 @@ made in [DECISIONS.md](https://github.com/berislavlopac/satara/blob/main/DECISIO
 
 ## How the tasks are met
 
-| Task                       | Where                                                                                    |
-|----------------------------|------------------------------------------------------------------------------------------|
-| 1. File-zipping REST API   | `POST /archive-files`, and `/archives` for larger archives; see [Using the API](api.md). |
-| 2. Containerisation        | The `Dockerfile`; see [Getting started](getting-started.md).                             |
-| 3. CI/CD pipeline          | GitHub Actions; see [Running it](operations.md#checks).                                  |
-| 4. AI-assisted development | [AI-assisted development](ai-assisted-development.md).                                   |
+| Task                       | Where                                                                          |
+|----------------------------|--------------------------------------------------------------------------------|
+| 1. File-zipping REST API   | `POST /archive-files`, and `/archives` for larger archives; see [API](api.md). |
+| 2. Containerisation        | The `Dockerfile`; see [Getting started](getting-started.md).                   |
+| 3. CI/CD pipeline          | GitHub Actions; see [CI and quality checks](ci.md).                            |
+| 4. AI-assisted development | [AI-assisted development](ai-assisted-development.md).                         |
 
 ## Main trade-offs
 

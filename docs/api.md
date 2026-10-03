@@ -1,4 +1,4 @@
-# Using the API
+# API
 
 The service packs files into a ZIP archive in one of two ways:
 
@@ -6,7 +6,15 @@ The service packs files into a ZIP archive in one of two ways:
   response. This suits a modest number of fairly small files.
 - **Deferred**: the client declares its files, uploads each straight to storage, and fetches
   the archive once it has been built. This takes many more files, and much larger ones. It is
-  served only when switched on; see [Running it](operations.md#the-deferred-flow).
+  served only when switched on; see [Configuration](configuration.md#the-deferred-flow).
+
+## Interactive documentation
+
+The service documents its own API, from the code that serves it, so it always matches the running
+version. With the service running locally:
+
+- <http://localhost:8000/docs> lets you read about each endpoint and try it from the browser;
+- <http://localhost:8000/openapi.json> is the OpenAPI document, for tools and generated clients.
 
 ## Archive files
 
@@ -91,7 +99,7 @@ framework uses for its own validation, each naming the field at fault in `loc`:
 }
 ```
 
-The limits are set in the [configuration](operations.md#configuration).
+The limits are set in the [configuration](configuration.md).
 
 A body too large is refused as soon as that is known: at once when its declared
 `Content-Length` is over the limit, and otherwise as soon as the bytes received pass it, before
@@ -172,7 +180,3 @@ KiB by default, and a larger one is refused with 413 before it is read in full.
 
 `GET /health` answers `200` with `{"status": "ok"}` while the service is running. The
 container's health check uses it.
-
-## Interactive documentation
-
-The service describes its own API at `/docs`, and as an OpenAPI document at `/openapi.json`.
