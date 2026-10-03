@@ -4,23 +4,17 @@ import logging
 import satara.common.logging  # noqa: F401 - configures logging when imported
 
 
-def test_web_server_logs_are_rendered_as_JSON():
+def test_web_server_logs_are_rendered_as_JSON(caplog):
     """Renders the server's records in the service's own form, though they skip structlog.
 
-    The record is formatted by the logger's handler directly: the handler writes to the
-    stream that was standard error when it was made, which pytest had replaced by then.
+    The record is captured, then formatted by the server logger's own handler: the captured
+    text is in the test runner's format, not the one under test.
     """
     access = logging.getLogger("uvicorn.access")
-    record = access.makeRecord(
-        access.name,
-        logging.INFO,
-        "uvicorn/protocols/http/h11_impl.py",
-        1,
-        '%s - "%s %s HTTP/%s" %d',
-        ("10.0.0.1:5000", "GET", "/health", "1.1", 200),
-        None,
-    )
+    with caplog.at_level(logging.INFO, logger=access.name):
+        access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", "/health", "1.1", 200)
 
+    [record] = caplog.records
     rendered = json.loads(access.handlers[0].format(record))
 
     assert rendered.keys() == {"event", "logger", "level", "timestamp"}
