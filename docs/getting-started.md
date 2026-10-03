@@ -91,7 +91,7 @@ The first command installs every dependency group, including the development too
 | `archive`                  | Archive files with the running service in one request.              |
 | `archive-deferred`         | Archive files through the deferred flow.                            |
 | `test`                     | Run the unit tests, which need no Docker.                           |
-| `test-cov`                 | Run the unit tests with a coverage report and the 85% floor.        |
+| `test-cov`                 | Run the unit tests with a coverage report and the 90% floor.        |
 | `test-integration`         | Run the integration tests against the running stack.                |
 | `check`                    | Run the lint, formatting, dependency and type checks.               |
 | `reformat`                 | Reformat the code and sort the imports.                             |

@@ -12,7 +12,7 @@ The hooks catch problems before a commit exists, but they can be skipped or neve
 
 ## The jobs in CI
 
-- **Lint, types and tests:** the checks, then the unit tests with a coverage floor of 85%. The unit tests need no Docker: the S3 and SQS adapters run against an AWS emulator started inside the test process.
+- **Lint, types and tests:** the checks, then the unit tests with a coverage floor of 90%. The unit tests need no Docker: the S3 and SQS adapters run against an AWS emulator started inside the test process.
 - **Docker image:** builds the image, starts it, waits for its health check to pass, and archives one real upload, so it shows the image serves requests and not only that it builds.
 - **Integration tests:** start the local Compose stack and run the integration tests against it. They show what only a full emulator can: storage refusing an upload of the wrong size, a download served under its name, and an archive taken through the whole deferred flow.
 
