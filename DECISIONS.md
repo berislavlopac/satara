@@ -326,6 +326,14 @@ library cannot tell in advance and writes no file over 2 GiB, which is what the 
 Some older unzip tools cannot read ZIP64, and the macOS Archive Utility has had trouble with it
 in streamed archives. That affects only archives holding a file of about 2 GiB or more.
 
+### The deferred flow has its own, higher limits
+
+The deferred flow exists to take what the direct flow cannot, so it has its own limits rather
+than sharing the direct flow's: by default 1000 files, 5 GiB per file and 50 GiB in total,
+against 100 files, 50 MiB and 200 MiB. The file count has no ceiling, since no form parser
+stands in the way. A file is capped at 5 GiB, the most S3 takes in one upload; larger files
+would need S3's multipart upload driven by the client, which this proof of concept leaves out.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

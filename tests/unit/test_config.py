@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from satara.config import MIB, Settings
+from satara.config import GIB, MIB, Settings
 
 
 def test_settings_read_limits_from_prefixed_environment_variables(monkeypatch):
@@ -76,3 +76,22 @@ def test_settings_refuse_a_URL_lifetime_of_zero_or_over_seven_days(monkeypatch, 
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_settings_refuse_a_deferred_file_size_over_the_largest_single_upload(monkeypatch):
+    monkeypatch.setenv("SATARA_DEFERRED_MAX_FILE_SIZE", str(5 * GIB + 1))
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_allow_deferred_archives_more_than_direct_ones():
+    settings = Settings(_env_file=None)
+
+    direct = (settings.MAX_FILES, settings.MAX_FILE_SIZE, settings.MAX_TOTAL_SIZE)
+    deferred = (
+        settings.DEFERRED_MAX_FILES,
+        settings.DEFERRED_MAX_FILE_SIZE,
+        settings.DEFERRED_MAX_TOTAL_SIZE,
+    )
+    assert all(more > less for more, less in zip(deferred, direct, strict=True))
