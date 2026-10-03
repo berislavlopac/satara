@@ -48,7 +48,9 @@ address, so the URL must be signed for the address the client will use.
 
 ### What storage needs
 
-- The bucket, notifying the queue of every object created under `uploads/`.
+- The bucket, notifying the queue of every object created under `uploads/`, and removing the
+  parts of an unfinished multipart upload after a day. A build stopped before it can abort its
+  upload, by a stop signal that outlasts the container's grace period, leaves its parts behind.
 - The queue, with a visibility timeout long enough for a build (30 minutes in the local
   stack), and a dead-letter queue that takes a message after three failed attempts.
 
