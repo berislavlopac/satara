@@ -13,6 +13,10 @@ validation:
 
 theme:
   name: materialx
+  # An archive of any format, as ZIP is only the first; the favicon is the same icon's SVG.
+  icon:
+    logo: material/archive-arrow-down
+  favicon: assets/favicon.svg
   features:
     - navigation.instant
     - content.code.copy
