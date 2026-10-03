@@ -9,6 +9,23 @@ until aws s3api list-buckets >/dev/null 2>&1; do sleep 1; done
 aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1 \
     || aws s3api create-bucket --bucket "$BUCKET" >/dev/null
 
+# A build stopped before it can abort its upload leaves the parts behind; S3 removes them
+# after a day.
+cat > /tmp/lifecycle.json <<JSON
+{
+  "Rules": [
+    {
+      "ID": "remove-unfinished-uploads",
+      "Status": "Enabled",
+      "Filter": {"Prefix": ""},
+      "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+    }
+  ]
+}
+JSON
+aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" \
+    --lifecycle-configuration file:///tmp/lifecycle.json >/dev/null
+
 # Kept for 14 days, the most SQS allows.
 dead_letter_url=$(aws sqs create-queue --queue-name "$QUEUE-dead-letter" \
     --attributes MessageRetentionPeriod=1209600 --query QueueUrl --output text)
