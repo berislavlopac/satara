@@ -228,8 +228,8 @@ the archive unchanged, so any other character the format alters would show up th
 Names that differ only in letter case, or only in how Unicode spells the same character (an
 accented letter as one character, or as a letter followed by a combining accent), count as the
 same name, so the second is renamed. The renaming rule exists so that extracting an archive
-replaces no file, and the default file systems of macOS and Windows treat such names as one.
-Each file keeps its own spelling.
+replaces no file. The default file system of macOS treats such names as one, and that of
+Windows ignores letter case. Each file keeps its own spelling.
 
 ### No limit on the length of a file name
 
@@ -245,8 +245,8 @@ Two limits are capped, so that a setting cannot promise what the service cannot 
 - `MAX_FILES` is at most 1000. The form parser refuses more parts than that before the
   service sees the request, so a higher setting would have no effect.
 - `MAX_FILE_SIZE` is at most 2000 MiB. The archive is written without the ZIP64 extensions,
-  which allow a file of up to 2 GiB, compressed or not. A larger file would fail after the
-  response had started, cutting the download short. The margin covers compression, which
+  and without them the ZIP library writes a file of at most 2 GiB, compressed or not. A larger
+  file would fail after the response had started, cutting the download short. The margin covers compression, which
   makes a file that does not compress slightly larger.
 
 ### Every 422 has the web framework's form

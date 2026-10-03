@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: Annotated[Size, Field(le=2000 * MIB)] = ByteSize(50 * MIB)
     """The largest size of a single uploaded file; up to 2000 MiB.
 
-    The archive is written without ZIP64 extensions, so a file must stay under 2 GiB even
-    after compression, which makes a file that does not compress slightly larger.
+    Without ZIP64 extensions, the ZIP library writes a file of at most 2 GiB, even after
+    compression, which makes a file that does not compress slightly larger.
     """
 
     MAX_TOTAL_SIZE: Size = ByteSize(200 * MIB)

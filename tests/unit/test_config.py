@@ -35,7 +35,9 @@ def test_settings_refuse_a_limit_of_zero(monkeypatch, name):
 
 
 @pytest.mark.parametrize(
-    ("name", "value"), [("MAX_FILES", "1001"), ("MAX_FILE_SIZE", "2001MiB")]
+    ("name", "value"),
+    [("MAX_FILES", "1001"), ("MAX_FILE_SIZE", "2001MiB")],
+    ids=["files", "file size"],
 )
 def test_settings_refuse_a_limit_above_the_highest_allowed(monkeypatch, name, value):
     monkeypatch.setenv(f"SATARA_{name}", value)
