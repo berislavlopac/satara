@@ -41,7 +41,7 @@ services:
 
   consumer:
     build: .
-    command: ["python", "-m", "satara.presentation.consumer"]
+    command: ["python", "scripts/consumer.py"]
     depends_on:
       storage-setup:
         condition: service_completed_successfully

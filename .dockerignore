@@ -3,4 +3,5 @@
 !pyproject.toml
 !uv.lock
 !satara/
+!scripts/consumer.py
 **/__pycache__

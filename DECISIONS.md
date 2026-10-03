@@ -428,6 +428,10 @@ consumer, which receives nothing more until it has finished its batch and delete
 messages, so a message whose timeout ran out during its build is not delivered twice. A
 production consumer would extend the timeout while it works, and start with a shorter one.
 
+The consumer's class lives in the presentation layer, and `wiring` builds it, as it builds the
+application. What starts it, the heartbeat, the stop signal and the event loop, is in
+`scripts/consumer.py`, outside the package, as the server is for the API.
+
 The consumer serves nothing, so the image's HTTP health check does not fit it. A daemon thread
 touches a heartbeat file every 15 seconds, and the consumer's own health check tests that the
 file is recent. Docker only reports an unhealthy container, so the consumer is also restarted

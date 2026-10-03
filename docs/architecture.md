@@ -11,9 +11,10 @@ becomes a package. A layer depends only on the ones above it in this list.
 | Application    | `application/`    | The use cases of each flow, the limits they share, and the handler that builds an archive. |
 | Infrastructure | `infrastructure/` | The ZIP writer, the S3 repository and file storage, and an in-process event broker.        |
 | Presentation   | `presentation/`   | The HTTP endpoints, the answers to refused requests, and the queue consumer.               |
-| Wiring         | `wiring.py`       | Builds the application, and the deferred flow's service, from the settings.                |
+| Wiring         | `wiring.py`       | Builds the application, the deferred flow's service and the consumer from the settings.    |
 
-Settings are read in `config.py`. `common/` holds generic utilities with no project vocabulary:
+Settings are read in `config.py`, and `scripts/consumer.py` starts the consumer the way the
+server starts the application. `common/` holds generic utilities with no project vocabulary:
 the base models, domain events and their broker port, logging and the heartbeat.
 
 One archive entity serves both flows. In the direct flow its files' content is there from the

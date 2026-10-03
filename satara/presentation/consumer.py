@@ -1,18 +1,13 @@
 """The queue consumer: turns upload notifications into checks of the archives they concern.
 
-Run it with `python -m satara.presentation.consumer`. It handles one batch of messages at a
-time, so a message for an archive being built is read only after the build, and finds it
-done. A stop signal ends the loop once the current batch is handled.
+It handles one batch of messages at a time, so a message for an archive being built is read
+only after the build, and finds it done.
 """
 
 import asyncio
 import json
-import signal
-import tempfile
-from pathlib import Path
 from urllib.parse import unquote_plus
 
-from aiobotocore.session import get_session
 from pydantic import ValidationError
 
 from satara.application.deferred import (
@@ -20,16 +15,9 @@ from satara.application.deferred import (
     DeferredArchiveService,
     RecordBuildFailureCommand,
 )
-from satara.common.heartbeat import start_heartbeat
 from satara.common.logging import get_logger
 from satara.common.queue import MessageQueue, QueueMessage
-from satara.config import Settings
 from satara.domain import ArchiveID, ArchiveNotFoundError
-from satara.infrastructure.sqs import SQSMessageQueue
-from satara.wiring import open_deferred_service
-
-HEARTBEAT_FILE = Path(tempfile.gettempdir()) / "satara-consumer-alive"
-"""The file the consumer touches while it runs, for a health check to look at."""
 
 _UPLOADS = "uploads/"
 
@@ -118,30 +106,3 @@ class Consumer:
     async def _delete(self, messages: list[QueueMessage]) -> None:
         for message in messages:
             await self._queue.delete(message)
-
-
-async def consume(settings: Settings, stop: asyncio.Event) -> None:
-    """Open the clients and run the consumer until `stop` is set.
-
-    Args:
-        settings: The settings to build from.
-        stop: Set to end the consumer once its current batch is handled.
-    """
-    async with (
-        open_deferred_service(settings) as service,
-        get_session().create_client("sqs") as sqs,
-    ):
-        queue_url = (await sqs.get_queue_url(QueueName=settings.QUEUE))["QueueUrl"]
-        await Consumer(SQSMessageQueue(sqs, queue_url), service).run(stop)
-
-
-async def main() -> None:
-    """Run the consumer, with a heartbeat, until the process is told to stop."""
-    start_heartbeat(HEARTBEAT_FILE)
-    stop = asyncio.Event()
-    asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, stop.set)
-    await consume(Settings(), stop)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
