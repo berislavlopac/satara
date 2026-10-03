@@ -1,8 +1,10 @@
 # Getting started
 
-## Run it with Docker
+Running the service needs [Docker](https://docs.docker.com/get-docker/). The `just` recipes below also need [uv](https://docs.astral.sh/uv/), which brings `just` with the project's development tools: run them as `uv run just <recipe>`, or drop the `uv run` with `just` installed.
 
-With [just](https://just.systems):
+## Run the service on its own
+
+One container serves the direct flow, with nothing else needed:
 
 ```shell
 just build-image
@@ -16,29 +18,44 @@ docker build -t satara .
 docker run --rm -p 8000:8000 satara
 ```
 
-The service listens on <http://localhost:8000>. Try it with:
+The service listens on <http://localhost:8000>, and documents its own API at <http://localhost:8000/docs>.
+
+## Run the whole stack
+
+The deferred flow needs storage and a queue consumer as well. Docker Compose runs them all, with MiniStack, an emulator, standing in for S3 and SQS:
+
+```shell
+just up
+```
+
+This builds the image and starts the service, with the deferred flow switched on, the consumer, the emulator, and a step that creates the bucket and the queues, then waits until all are healthy. The service is at <http://localhost:8000> and storage at <http://localhost:4566>. `just down` stops it all.
+
+## Try it
+
+With the service running, archive some files in one request:
+
+```shell
+just archive notes.txt data.csv --name report
+```
+
+With the whole stack running, archive them through the deferred flow, which creates the archive, uploads each file straight to storage, waits until the consumer has built the archive, and downloads it:
+
+```shell
+just archive-deferred notes.txt data.csv --name report
+```
+
+Either saves `report.zip` in the current directory. Both run `scripts/archive.py`, which needs nothing beyond Python's standard library; `--help` lists its options.
+
+With `curl` instead, the direct flow is one request:
 
 ```shell
 curl --form files=@notes.txt --form files=@data.csv --form name=report \
     --output report.zip http://localhost:8000/archive-files
 ```
 
-Interactive API documentation is served at <http://localhost:8000/docs>.
-
-## Run the deferred flow with Docker Compose
-
-The deferred flow needs storage and a queue consumer. Docker Compose runs them all locally, with
-an emulator standing in for S3 and SQS:
+The deferred flow takes four, described step by step in [the API page](api.md#deferred-archives):
 
 ```shell
-docker compose up -d --build --wait
-```
-
-Then create an archive, upload its file to the URL in the answer, and follow the status URL
-until it gives a download URL:
-
-```shell
-printf 'hello\n' > notes.txt
 curl --json '{"name": "report", "files": [{"name": "notes.txt", "size": 6}]}' \
     http://localhost:8000/archives
 curl --upload-file notes.txt '<the upload URL>'
@@ -46,37 +63,29 @@ curl '<the status URL>'
 curl --output report.zip '<the download URL>'
 ```
 
-`docker compose down` stops it all. [Using the API](api.md#deferred-archives) describes each
-step.
-
 ## Set it up for development
 
-The project uses [uv](https://docs.astral.sh/uv/) for its environment and dependencies. uv
-installs the Python version the project needs, 3.14, if it is not already present.
+uv installs the Python version the project needs, 3.14, if it is not already present.
 
 ```shell
 uv sync --all-groups
 uv run prek install
 ```
 
-The first command installs every dependency group, including the development tools; the
-second installs the Git hooks, which check each commit before it is made.
+The first command installs every dependency group, including the development tools; the second installs the Git hooks, which check each commit before it is made.
 
-Tasks are run through `just` recipes. `just` is one of the development dependencies, so
-`uv run just <recipe>` works without installing it separately; with `just` installed, the
-`uv run` prefix can be dropped.
-
-| Recipe             | What it does                                                 |
-|--------------------|--------------------------------------------------------------|
-| `serve`            | Serve the API locally, reloading on code changes.            |
-| `test`             | Run the unit tests.                                          |
-| `test-cov`         | Run the unit tests with a coverage report and the 85% floor. |
-| `test-integration` | Run the integration tests against the Compose stack.         |
-| `check`            | Run the lint, formatting, dependency and type checks.        |
-| `reformat`         | Reformat the code and sort the imports.                      |
-| `docs`             | Serve this documentation locally, reloading on changes.      |
-| `build-docs`       | Build this documentation, failing on any warning.            |
-| `build-image`      | Build the Docker image.                                      |
-| `run-image`        | Run the Docker image, serving on port 8000.                  |
+| Recipe                     | What it does                                                        |
+|----------------------------|---------------------------------------------------------------------|
+| `serve`                    | Serve the API locally, reloading on code changes.                   |
+| `up`, `down`               | Start the whole stack and wait until it is healthy; stop it.        |
+| `archive`                  | Archive files with the running service in one request.              |
+| `archive-deferred`         | Archive files through the deferred flow.                            |
+| `test`                     | Run the unit tests, which need no Docker.                           |
+| `test-cov`                 | Run the unit tests with a coverage report and the 85% floor.        |
+| `test-integration`         | Run the integration tests against the running stack.                |
+| `check`                    | Run the lint, formatting, dependency and type checks.               |
+| `reformat`                 | Reformat the code and sort the imports.                             |
+| `docs`, `build-docs`       | Serve this documentation locally; build it, failing on any warning. |
+| `build-image`, `run-image` | Build the Docker image; run it, serving on port 8000.               |
 
 `just --list` shows them all.

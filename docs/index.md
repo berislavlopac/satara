@@ -10,14 +10,12 @@ It is a FastAPI application and a queue consumer, both run from one Docker image
 
 ## Where to start
 
-- [Getting started](getting-started.md): run the service with Docker, or set it up for
-  development.
-- [Using the API](api.md): the endpoints, their fields, their responses and the reasons a
-  request is refused.
-- [Running it](operations.md): configuration, the deferred flow's storage and consumer, the
-  container, and the checks that guard the code.
-- [How it's built](architecture.md): the layers of the code and how a request flows through
-  them.
+- [Getting started](getting-started.md): run the service or the whole stack locally, try both flows, and set it up for development.
+- [API](api.md): the endpoints, their fields, their responses and the reasons a request is refused.
+- [Configuration](configuration.md): every setting, debug mode, and what the logs hold.
+- [Deployment](deployment.md): what running it for real needs: the two processes, storage and queues.
+- [CI and quality checks](ci.md): the checks before each commit and in CI, and how dependencies are kept current.
+- [Architecture](architecture.md): the layers of the code, the ports, and how each flow runs through them.
 - [AI-assisted development](ai-assisted-development.md): how the author develops software with
   AI assistance, in general; written as the answer to the brief's fourth task.
 - [The exercise](exercise.md): the take-home exercise this service was written for, its
