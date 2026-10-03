@@ -1,6 +1,12 @@
 import pytest
 
-from tests.unit.fakes import MemoryContent, RecordingWriter
+from tests.unit.fakes import (
+    MemoryArchiveRepository,
+    MemoryContent,
+    MemoryFileStorage,
+    RecordingBroker,
+    RecordingWriter,
+)
 
 
 @pytest.fixture(scope="session")
@@ -12,3 +18,18 @@ def memory_content():
 @pytest.fixture
 def recording_writer():
     return RecordingWriter()
+
+
+@pytest.fixture
+def repository():
+    return MemoryArchiveRepository()
+
+
+@pytest.fixture
+def storage():
+    return MemoryFileStorage()
+
+
+@pytest.fixture
+def broker():
+    return RecordingBroker()
