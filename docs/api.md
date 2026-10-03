@@ -161,8 +161,10 @@ status again gives a fresh one.
 
 `POST /archives` is refused as the direct flow's endpoint is, with 413 for a broken limit
 and 422 for an unusable name or no files, but the limits are the deferred flow's own and the
-total size is that of the declared files. `GET /archives/{id}` answers 404 for an ID no
-archive has, and 422 for one that is not a UUID.
+total size is that of the declared files. Its body may hold 1 KiB for each file allowed, 1000
+KiB by default, and a larger one is refused with 413 before it is read in full.
+
+`GET /archives/{id}` answers 404 for an ID no archive has, and 422 for one that is not a UUID.
 
 ## Health check
 
