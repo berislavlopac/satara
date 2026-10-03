@@ -2063,6 +2063,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "python-multipart" },
     { name = "starlette" },
+    { name = "structlog" },
     { name = "unclogger" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -2097,6 +2098,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "starlette", specifier = ">=1.7.0" },
+    { name = "structlog", specifier = ">=26.1.0" },
     { name = "unclogger", specifier = ">=0.2.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0" },
 ]
