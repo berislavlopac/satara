@@ -6,10 +6,8 @@ from pydantic import ConfigDict, SkipValidation
 
 from satara.application.base import (
     Command,
-    FileTooLargeError,
-    NoFilesError,
+    Limits,
     Result,
-    TooManyFilesError,
     to_archive_name,
     to_entry_name,
 )
@@ -57,17 +55,15 @@ class ArchiveFilesResult(Result):
 class ArchiveService:
     """Packs uploaded files into an archive, within the configured limits."""
 
-    def __init__(self, writer: ArchiveWriter, max_files: int, max_file_size: int) -> None:
+    def __init__(self, writer: ArchiveWriter, limits: Limits) -> None:
         """Set up the service.
 
         Args:
             writer: Writes archives in the format the service produces.
-            max_files: The most files one archive may hold.
-            max_file_size: The largest size, in bytes, of a single file.
+            limits: How much one archive may hold.
         """
         self._writer = writer
-        self._max_files = max_files
-        self._max_file_size = max_file_size
+        self._limits = limits
 
     def archive_files(self, command: ArchiveFilesCommand) -> ArchiveFilesResult:
         """Check the files against the limits and collect them into an archive.
@@ -82,30 +78,14 @@ class ArchiveService:
 
         Returns:
             The archive, described and ready to be read.
-
-        Raises:
-            NoFilesError: No files were sent.
-            TooManyFilesError: More files were sent than the limit allows.
-            FileTooLargeError: A file is larger than the limit allows.
         """
-        files = command.files
-        if not files:
-            raise NoFilesError("No files were sent")
-        if len(files) > self._max_files:
-            raise TooManyFilesError(
-                f"{len(files)} files were sent; at most {self._max_files} are allowed"
-            )
+        self._limits.check(command.files)
         archive = (
             Archive()
             if command.archive_name is None
             else Archive(name=to_archive_name(command.archive_name))
         )
-        for file in files:
-            if file.size > self._max_file_size:
-                raise FileTooLargeError(
-                    f"{file.name!r} is {file.size} bytes; "
-                    f"at most {self._max_file_size} are allowed"
-                )
+        for file in command.files:
             archive.add(to_entry_name(file.name), file.size, file.content)
         return ArchiveFilesResult(
             archive_id=archive.archive_id,
