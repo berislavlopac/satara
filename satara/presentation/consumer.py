@@ -44,7 +44,7 @@ def to_archive_id(message: QueueMessage) -> ArchiveID | None:
     try:
         records = json.loads(message.body).get("Records", [])
         key = unquote_plus(records[0]["s3"]["object"]["key"])
-    except ValueError, LookupError, AttributeError:
+    except ValueError, LookupError, AttributeError, TypeError:
         return None
     if not key.startswith(_UPLOADS):
         return None
