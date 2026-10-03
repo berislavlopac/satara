@@ -1,5 +1,6 @@
 import asyncio
 import zipfile
+from http import HTTPStatus
 from io import BytesIO
 
 import pytest
@@ -17,8 +18,12 @@ async def test_an_archive_is_built_once_all_its_files_are_uploaded(http):
         "files": [{"name": name, "size": len(data)} for name, data in files.items()],
     }
     created = (await http.post(f"{API}/archives", json=body)).json()
-    for upload in created["uploads"]:
+    uploads = [
         await http.put(upload["url"], content=files[upload["name"]])
+        for upload in created["uploads"]
+    ]
+    # A failed upload would otherwise show only as the wait below running out.
+    assert [upload.status_code for upload in uploads] == [HTTPStatus.OK] * len(files)
 
     async with asyncio.timeout(30):
         status = (await http.get(created["status_url"])).json()
