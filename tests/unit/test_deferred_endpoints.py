@@ -74,6 +74,15 @@ def test_create_archive_refuses_a_body_larger_than_its_declarations_need(client)
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
 
 
+def test_archive_files_keeps_its_own_body_limit_beside_archive_creation(client):
+    """Accepts a body far over archive creation's limit, which applies to that path alone."""
+    files = [("files", ("large.bin", b"x" * 10_000))]
+
+    response = client.post("/archive-files", files=files)
+
+    assert response.status_code == HTTPStatus.OK
+
+
 def test_create_archive_refuses_an_unusable_file_name(client):
     response = create(client, ("..", 1))
 
@@ -126,20 +135,21 @@ def test_deferred_flow_is_not_served_unless_switched_on():
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
-class Broken:
-    async def get_archive_status(self, command):
-        raise RuntimeError("Something unexpected")
-
-
 @pytest.mark.parametrize(
     ("debug", "traceback_shown"),
     [(True, True), (False, False)],
     ids=["debug mode", "otherwise"],
 )
-def test_an_unhandled_error_shows_its_traceback_only_in_debug_mode(debug, traceback_shown):
+def test_an_unhandled_error_shows_its_traceback_only_in_debug_mode(
+    failing_repository, storage, broker, recording_writer, debug, traceback_shown
+):
     """Shows it in the body of the 500 response, so debug mode is never for production."""
     app = create_app(Settings(DEFERRED_ENABLED=True, DEBUG=debug, _env_file=None))
-    app.dependency_overrides[get_deferred_service] = Broken
+    limits = Limits(max_files=3, max_file_size=10, max_total_size=25)
+    service = DeferredArchiveService(
+        failing_repository, storage, broker, recording_writer, limits
+    )
+    app.dependency_overrides[get_deferred_service] = lambda: service
     client = TestClient(app, raise_server_exceptions=False)
 
     response = client.get(f"/archives/{uuid7()}")

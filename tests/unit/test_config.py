@@ -51,7 +51,10 @@ def test_settings_accept_a_thousand_files(monkeypatch):
     assert settings.MAX_FILES == 1000
 
 
-def test_settings_leave_the_deferred_flow_and_debug_mode_off_by_default():
+def test_settings_leave_the_deferred_flow_and_debug_mode_off_by_default(monkeypatch):
+    monkeypatch.delenv("SATARA_DEFERRED_ENABLED", raising=False)
+    monkeypatch.delenv("SATARA_DEBUG", raising=False)
+
     settings = Settings(_env_file=None)
 
     assert (settings.DEFERRED_ENABLED, settings.DEBUG) == (False, False)

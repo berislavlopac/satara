@@ -3,6 +3,7 @@ import pytest
 from tests.unit.fakes import (
     FailingBroker,
     FailingHandler,
+    FailingRepository,
     MemoryArchiveRepository,
     MemoryContent,
     MemoryFileStorage,
@@ -73,3 +74,8 @@ def recording_handler():
 @pytest.fixture
 def failing_handler():
     return FailingHandler()
+
+
+@pytest.fixture
+def failing_repository():
+    return FailingRepository()
