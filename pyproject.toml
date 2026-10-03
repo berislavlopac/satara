@@ -33,6 +33,7 @@ docs = [
 test = [
     "httpx2>=2.13.1",
     "hypothesis>=6.168.3",
+    "moto[server]>=5.2.3",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
@@ -58,9 +59,6 @@ markers = [
 
 [tool.coverage.run]
 source = ["satara/"]
-# The adapters to S3 and SQS are tested against the emulator in the integration tests, which
-# the unit suite's coverage does not measure.
-omit = ["satara/infrastructure/s3.py", "satara/infrastructure/sqs.py"]
 
 [tool.coverage.report]
 skip_covered = true
