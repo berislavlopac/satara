@@ -100,6 +100,17 @@ async def test_consumer_deletes_a_message_that_is_not_an_upload(build_consumer, 
     assert queue.deleted == [message]
 
 
+async def test_consumer_deletes_the_messages_of_an_archive_that_does_not_exist(
+    build_consumer, broker
+):
+    message = upload_of(Archive())
+    consumer, queue, stop = build_consumer(broker, [message])
+
+    await consumer.run(stop)
+
+    assert queue.deleted == [message]
+
+
 async def test_consumer_keeps_the_messages_of_a_failed_check_for_another_attempt(
     build_consumer, stored_archive, failing_broker
 ):
