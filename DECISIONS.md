@@ -471,6 +471,21 @@ includes the adapters. moto does not enforce presigned URLs, so storage refusing
 the wrong size, and the flow end to end, stay in the integration tests, which are a further
 layer rather than the only cover for any module.
 
+### One switch for debug mode
+
+`DEBUG` (`SATARA_DEBUG`) pulls all the stops, and is never on in production. Every logger
+logs at debug level, the libraries' included, rather than some being quietened; FastAPI runs in
+debug mode, returning a traceback in the body of an unhandled error's 500 response; asyncio
+runs in debug mode in both processes, reporting coroutines never awaited and steps that block
+its event loop; and each process logs its full settings at start-up. Code that does something
+extra while debugging checks the setting.
+
+Logging also reads `SATARA_DEBUG` directly, on import, so that debug logging applies to code
+that runs before the settings are read. The wiring configures logging again from the settings,
+which may come from a `.env` file that the first reading cannot see. Every refusal keeps its
+shape in both modes; only an unhandled error's response differs. Health checks stay out of the
+access log even in debug mode, as they add nothing when debugging.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

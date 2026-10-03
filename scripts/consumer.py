@@ -20,7 +20,7 @@ HEARTBEAT_FILE = Path(tempfile.gettempdir()) / "satara-consumer-alive"
 log = get_logger("satara.consumer")
 
 
-async def main() -> None:
+async def main(settings: Settings) -> None:
     """Run the consumer, with a heartbeat, until the process is told to stop."""
     start_heartbeat(HEARTBEAT_FILE)
     stop = asyncio.Event()
@@ -30,9 +30,11 @@ async def main() -> None:
         stop.set()
 
     asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, request_stop)
-    async with open_consumer(Settings()) as consumer:
+    async with open_consumer(settings) as consumer:
         await consumer.run(stop)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    settings = Settings()
+    # Debug mode reports coroutines never awaited and steps that block the event loop.
+    asyncio.run(main(settings), debug=settings.DEBUG)

@@ -124,3 +124,25 @@ def test_deferred_flow_is_not_served_unless_switched_on():
     response = client.post("/archives", json={"files": [{"name": "a.txt", "size": 1}]})
 
     assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+class Broken:
+    async def get_archive_status(self, command):
+        raise RuntimeError("Something unexpected")
+
+
+@pytest.mark.parametrize(
+    ("debug", "traceback_shown"),
+    [(True, True), (False, False)],
+    ids=["debug mode", "otherwise"],
+)
+def test_an_unhandled_error_shows_its_traceback_only_in_debug_mode(debug, traceback_shown):
+    """Shows it in the body of the 500 response, so debug mode is never for production."""
+    app = create_app(Settings(DEFERRED_ENABLED=True, DEBUG=debug, _env_file=None))
+    app.dependency_overrides[get_deferred_service] = Broken
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(f"/archives/{uuid7()}")
+
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert ("Traceback" in response.text) is traceback_shown

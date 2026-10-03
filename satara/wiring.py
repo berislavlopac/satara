@@ -1,5 +1,6 @@
 """Builds the service from its settings."""
 
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 
@@ -11,7 +12,7 @@ from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 from satara.application.base import Limits, UploadRejectedError
 from satara.application.deferred import ArchiveBuilder, DeferredArchiveService
 from satara.application.direct import ArchiveService
-from satara.common.logging import get_logger, silence_access_log
+from satara.common.logging import configure_logging, get_logger, silence_access_log
 from satara.common.middleware import PathBodyLimitMiddleware
 from satara.config import Settings
 from satara.domain import AllFilesReceived, ArchiveNotFoundError
@@ -77,18 +78,23 @@ async def open_deferred_service(settings: Settings) -> AsyncGenerator[DeferredAr
 async def open_consumer(settings: Settings) -> AsyncGenerator[Consumer]:
     """Open the storage and queue clients and build the consumer on them.
 
+    Logging is configured afresh from the settings, which may come from a `.env` file that the
+    first configuration, on import, could not see.
+
     Args:
         settings: The settings to build from.
 
     Yields:
         The consumer, ready to run until the context exits.
     """
+    configure_logging(settings.DEBUG)
     async with (
         open_deferred_service(settings) as service,
         get_session().create_client("sqs") as sqs,
     ):
         queue_url = (await sqs.get_queue_url(QueueName=settings.QUEUE))["QueueUrl"]
         log.info("Consumer configured.", bucket=settings.BUCKET, queue=settings.QUEUE)
+        log.debug("Settings in full.", **settings.model_dump(mode="json"))
         yield Consumer(SQSMessageQueue(sqs, queue_url), service)
 
 
@@ -96,7 +102,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the web application.
 
     The deferred flow's endpoints are served only when it is switched on; its storage clients
-    are then opened when the application starts and closed when it stops.
+    are then opened when the application starts and closed when it stops. Logging is configured
+    afresh from the settings, which may come from a `.env` file that the first configuration,
+    on import, could not see.
 
     Args:
         settings: The settings to build from; read from the environment if not given.
@@ -105,9 +113,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         The application, ready to be served.
     """
     settings = settings or Settings()
+    configure_logging(settings.DEBUG)
 
     @asynccontextmanager
-    async def open_storage(app: FastAPI) -> AsyncGenerator[None]:
+    async def run(app: FastAPI) -> AsyncGenerator[None]:
+        if settings.DEBUG:
+            asyncio.get_running_loop().set_debug(True)
+        if not settings.DEFERRED_ENABLED:
+            yield
+            return
         async with open_deferred_service(settings) as service:
             app.state.deferred_service = service
             yield
@@ -115,7 +129,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Satara",
         summary="Packs uploaded files into a ZIP archive.",
-        lifespan=open_storage if settings.DEFERRED_ENABLED else None,
+        debug=settings.DEBUG,
+        lifespan=run,
     )
     limits = Limits(
         max_files=settings.MAX_FILES,
@@ -146,6 +161,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         deferred_enabled=settings.DEFERRED_ENABLED,
         **_to_limits_summary(settings),
     )
+    log.debug("Settings in full.", **settings.model_dump(mode="json"))
     return app
 
 

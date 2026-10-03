@@ -1,4 +1,4 @@
-"""Structured logging, configured once for the whole process."""
+"""Structured logging for the whole process, configured when this module is imported."""
 
 import logging
 import os
@@ -8,29 +8,33 @@ import unclogger
 from unclogger.defaults import json_default
 
 DEBUG = os.environ.get("SATARA_DEBUG", "").lower() == "true"
-"""Whether to log at debug level, read from `SATARA_DEBUG`."""
+"""Whether to log everything at debug level, read from `SATARA_DEBUG`.
 
-# Noisy third-party loggers, held at warning level unless actively debugging them.
+Logging is configured on import, before any settings are read, so it reads the variable behind
+the `DEBUG` setting directly.
+"""
+
+# Noisy third-party loggers, held at warning level outside debug mode.
 _THIRD_PARTY_LOGGERS = ("aiobotocore", "botocore", "urllib3")
 
 # The web server's loggers. Their records do not pass through structlog, so they have a handler
 # of their own that renders them as the service's own logs are rendered.
 _SERVER_LOGGERS = ("uvicorn.access", "uvicorn.error")
 
-_configured = False
 
+def configure_logging(debug: bool = DEBUG) -> None:
+    """Configure logging for the whole process.
 
-def configure_logging() -> None:
-    """Configure logging for the whole process, once.
+    Renders the web server's logs as JSON too. Outside debug mode it logs at info level and
+    holds noisy third-party loggers at warning; in debug mode every logger logs at debug
+    level. Each call configures afresh, so it can be called again.
 
-    Sets the level from `SATARA_DEBUG`, quietens noisy third-party loggers, and renders the web
-    server's logs as JSON too. Idempotent; runs when this module is imported.
+    Args:
+        debug: Whether to log everything at debug level.
     """
-    global _configured
-    if _configured:
-        return
+    level = logging.DEBUG if debug else logging.INFO
     for name in _THIRD_PARTY_LOGGERS:
-        logging.getLogger(name).setLevel(logging.WARNING)
+        logging.getLogger(name).setLevel(logging.DEBUG if debug else logging.WARNING)
     handler = logging.StreamHandler()
     handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
@@ -50,8 +54,8 @@ def configure_logging() -> None:
         server_logger = logging.getLogger(name)
         server_logger.handlers = [handler]
         server_logger.propagate = False
-    unclogger.set_level(logging.DEBUG if DEBUG else logging.INFO)
-    _configured = True
+        server_logger.setLevel(level)
+    unclogger.set_level(level)
 
 
 class _AccessPathFilter(logging.Filter):
@@ -87,7 +91,7 @@ def get_logger(name: str) -> unclogger.Unclogger:
     Args:
         name: The logger's name, by convention the module's `__name__`.
     """
-    return unclogger.get_logger(name, level=logging.DEBUG if DEBUG else logging.INFO)
+    return unclogger.get_logger(name)
 
 
 configure_logging()
