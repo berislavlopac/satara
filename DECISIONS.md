@@ -463,7 +463,7 @@ endpoint has its own limit, 1 KiB for each file allowed, applied by the same mid
 that path only. FastAPI does not expose Starlette's per-route limit, so the limit is matched
 by path.
 
-### The unit tests cover every module without Docker
+### The unit tests include the adapters, without Docker
 
 The S3 and SQS adapters are unit-tested against moto, an AWS emulator run inside the test
 process and reset before each test, so the unit suite needs no running stack and its coverage

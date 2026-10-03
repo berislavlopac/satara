@@ -53,13 +53,13 @@ C4Container
 The code in `satara/` is split into layers, each a single module until it outgrows one and
 becomes a package. A layer depends only on the ones above it in this list.
 
-| Layer          | Module            | Holds                                                                                      |
-|----------------|-------------------|--------------------------------------------------------------------------------------------|
-| Domain         | `domain.py`       | The archive, the rules for its names and its completion, and the ports.                    |
-| Application    | `application/`    | The use cases of each flow, the limits they share, and the handler that builds an archive. |
-| Infrastructure | `infrastructure/` | The ZIP writer, the S3 repository and file storage, and an in-process event broker.        |
-| Presentation   | `presentation/`   | The HTTP endpoints, the answers to refused requests, and the queue consumer.               |
-| Wiring         | `wiring.py`       | Builds the application, the deferred flow's service and the consumer from the settings.    |
+| Layer          | Module            | Holds                                                                                              |
+|----------------|-------------------|----------------------------------------------------------------------------------------------------|
+| Domain         | `domain.py`       | The archive, the rules for its names and its completion, and the ports.                            |
+| Application    | `application/`    | The use cases of each flow, the limits they share, and the handler that builds an archive.         |
+| Infrastructure | `infrastructure/` | The ZIP writer, the S3 repository and file storage, the SQS queue, and an in-process event broker. |
+| Presentation   | `presentation/`   | The HTTP endpoints, the answers to refused requests, and the queue consumer.                       |
+| Wiring         | `wiring.py`       | Builds the application, the deferred flow's service and the consumer from the settings.            |
 
 ```mermaid
 flowchart TB
@@ -95,7 +95,8 @@ rather than the domain's ports, as neither speaks of archives.
 
 Settings are read in `config.py`, and `scripts/consumer.py` starts the consumer the way the
 server starts the application. `common/` holds generic utilities with no project vocabulary:
-the base models, domain events and their broker port, logging and the heartbeat.
+the base models, domain events and their broker port, the message queue's protocol, logging,
+middleware for a body limit on one path, and the heartbeat.
 
 One archive entity serves both flows. In the direct flow its files' content is there from the
 start; in the deferred flow it arrives later, and the archive tracks which files have arrived
@@ -233,7 +234,7 @@ rules, partly with generated inputs, to the whole application driven through the
 with the real ZIP writer. The deferred flow's use cases, endpoints and consumer run against
 in-memory doubles of the repository, file storage, broker and queue. The S3 and SQS adapters
 run against moto, an AWS emulator started inside the test process, so the unit tests need no
-Docker and cover every module.
+Docker and include the adapters.
 
 The tests in `tests/integration/` are a further layer, run against the local Compose stack with
 `just test-integration`. They show what only a full emulator can: storage enforcing a presigned
