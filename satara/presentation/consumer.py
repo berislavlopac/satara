@@ -24,7 +24,7 @@ from satara.common.heartbeat import start_heartbeat
 from satara.common.logging import get_logger
 from satara.common.queue import MessageQueue, QueueMessage
 from satara.config import Settings
-from satara.domain import ArchiveID
+from satara.domain import ArchiveID, ArchiveNotFoundError
 from satara.infrastructure.sqs import SQSMessageQueue
 from satara.wiring import open_deferred_service
 
@@ -92,6 +92,9 @@ class Consumer:
         log.info("Checking the archive's uploads.", archive_id=str(archive_id))
         try:
             await self._service.check_uploads(CheckUploadsCommand(archive_id=archive_id))
+        except ArchiveNotFoundError:
+            # No later attempt can find it either, so the messages are dropped.
+            log.warning("No archive has the ID; skipping.", archive_id=str(archive_id))
         except Exception:
             log.exception("Checking the archive failed.", archive_id=str(archive_id))
             if self._is_last_attempt(messages):
