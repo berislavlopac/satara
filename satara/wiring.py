@@ -127,7 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             yield
 
     app = FastAPI(
-        title="Satara",
+        title="Satara Archiver",
         summary="Packs uploaded files into a ZIP archive.",
         debug=settings.DEBUG,
         lifespan=run,

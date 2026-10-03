@@ -1,4 +1,4 @@
-# Satara
+# Satara Archiver
 
 A web service that packs uploaded files into a ZIP archive. In the direct flow, a client sends
 its files in a single request and receives the archive in the response, streamed as it is
@@ -47,8 +47,8 @@ The documentation is in [`docs/`](docs/index.md). To read it as a site, run `uv 
 
 ## Decisions and trade-offs
 
-Satara was written as a take-home exercise. [The exercise](docs/exercise.md) page summarises the
-main trade-offs, what is left out and what would come next, and
+Satara Archiver was written as a take-home exercise. [The exercise](docs/exercise.md) page
+summarises the main trade-offs, what is left out and what would come next, and
 [AI-assisted development](docs/ai-assisted-development.md) describes the author's general
 practice of developing software with AI assistance.
 

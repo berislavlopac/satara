@@ -1,10 +1,10 @@
-# Satara
+# Satara Archiver
 
-Satara is a web service that packs uploaded files into a ZIP archive, in one of two ways. In the
-direct flow, a client sends its files in a single request and receives the archive in the
-response, streamed as it is written. In the deferred flow, a client uploads each file straight
-to storage, and a queue consumer builds the archive once the last one has arrived, which takes
-many more files and much larger ones.
+Satara Archiver is a web service that packs uploaded files into a ZIP archive, in one of two
+ways. In the direct flow, a client sends its files in a single request and receives the archive
+in the response, streamed as it is written. In the deferred flow, a client uploads each file
+straight to storage, and a queue consumer builds the archive once the last one has arrived,
+which takes many more files and much larger ones.
 
 It is a FastAPI application and a queue consumer, both run from one Docker image.
 
