@@ -431,6 +431,23 @@ file is recent. Docker only reports an unhealthy container, so the consumer is a
 if it exits. The consumer is the first part of the service that logs, using structured
 logging in the lean form of the project conventions.
 
+### The consumer is built, not bought
+
+The consumer's loop (receive a batch, handle it, delete what succeeded) is small enough to cost
+less to keep than a dependency, and the parts that matter are specific to this service:
+skipping what is not an upload, grouping by archive, recording a failure on the last attempt.
+Task-queue frameworks with an SQS backend read only messages in their own format, not the
+events S3 writes. The thin SQS consumer libraries are small projects whose maintenance would
+need checking, and would leave that logic to write anyway. Having AWS run a function for each
+batch would remove the loop, but tie the service to that platform and its time limit; as a
+container, the consumer runs on Fargate or any other container platform.
+
+### Integration tests run in CI
+
+CI runs the integration tests against the same Compose stack as a developer's machine, in a
+job of its own: it builds the image, starts the stack and waits until every service is
+healthy, runs the tests, and shows the stack's logs if they fail. It still deploys nothing.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
