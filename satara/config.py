@@ -84,4 +84,9 @@ class Settings(BaseSettings):
     PRESIGNED_URL_LIFETIME: Annotated[
         timedelta, Field(gt=timedelta(0), le=timedelta(days=7))
     ] = timedelta(hours=1)
-    """How long an upload or download URL stays valid; up to 7 days, the most S3 allows."""
+    """How long an upload or download URL stays valid; up to 7 days, the most S3 allows.
+
+    In the environment, write it as an ISO 8601 duration, such as `PT15M`, `PT1H` or `P3D`, or
+    as hours, minutes and seconds, such as `01:00:00` or `72:00:00`. A bare number of seconds
+    is refused, as every value in the environment is text.
+    """
