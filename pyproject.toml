@@ -65,7 +65,7 @@ source = ["satara/"]
 skip_covered = true
 show_missing = true
 skip_empty = true
-fail_under = 85
+fail_under = 90
 exclude_also = ["pragma: no cover", "@abstract"]
 
 [tool.pyrefly]
