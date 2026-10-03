@@ -24,8 +24,11 @@ RUN groupadd --system satara \
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
 COPY satara /app/satara
+COPY scripts/consumer.py /app/scripts/consumer.py
 
+# The package is not installed, so a script run from `scripts/` finds it through the path.
 ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 

@@ -16,7 +16,9 @@ from satara.config import Settings
 from satara.domain import AllFilesReceived, ArchiveNotFoundError
 from satara.infrastructure.events import InProcessEventBroker
 from satara.infrastructure.s3 import S3ArchiveRepository, S3FileStorage
+from satara.infrastructure.sqs import SQSMessageQueue
 from satara.infrastructure.zip import ZipArchiveWriter
+from satara.presentation.consumer import Consumer
 from satara.presentation.http import (
     deferred_router,
     handle_archive_not_found,
@@ -66,6 +68,24 @@ async def open_deferred_service(settings: Settings) -> AsyncGenerator[DeferredAr
         broker = InProcessEventBroker()
         broker.subscribe(AllFilesReceived, ArchiveBuilder(repository, storage, writer))
         yield DeferredArchiveService(repository, storage, broker, writer, limits)
+
+
+@asynccontextmanager
+async def open_consumer(settings: Settings) -> AsyncGenerator[Consumer]:
+    """Open the storage and queue clients and build the consumer on them.
+
+    Args:
+        settings: The settings to build from.
+
+    Yields:
+        The consumer, ready to run until the context exits.
+    """
+    async with (
+        open_deferred_service(settings) as service,
+        get_session().create_client("sqs") as sqs,
+    ):
+        queue_url = (await sqs.get_queue_url(QueueName=settings.QUEUE))["QueueUrl"]
+        yield Consumer(SQSMessageQueue(sqs, queue_url), service)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

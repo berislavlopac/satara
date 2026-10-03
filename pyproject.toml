@@ -68,10 +68,10 @@ fail_under = 85
 exclude_also = ["pragma: no cover", "@abstract"]
 
 [tool.pyrefly]
-# The package and the test doubles. Tests themselves are not type-checked: they prove
+# The package, its scripts and the test doubles. Tests themselves are not type-checked: they prove
 # themselves by running, and annotating them invites a fight with every double and mock. The
 # doubles are checked so that they cannot drift from the protocols they stand in for.
-project-includes = ["satara/**/*.py", "tests/unit/fakes.py"]
+project-includes = ["satara/**/*.py", "scripts/**/*.py", "tests/unit/fakes.py"]
 
 [tool.ruff]
 line-length = 96

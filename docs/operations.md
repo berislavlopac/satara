@@ -67,7 +67,7 @@ The consumer builds each archive once its files have arrived. It is a separate p
 started from the same image with another command:
 
 ```shell
-python -m satara.presentation.consumer
+python scripts/consumer.py
 ```
 
 It needs the same settings and AWS variables as the service, apart from
