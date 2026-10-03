@@ -231,6 +231,13 @@ same name, so the second is renamed.
 The renaming rule exists so that extracting an archive replaces no file, and the default file
 systems of macOS and Windows treat such names as one. Each file keeps its own spelling.
 
+### No limit on the length of a file name
+
+A name longer than a file system allows, usually 255 bytes, is kept as it is. The archive holds
+it without trouble; only that one file fails to extract on the client's machine. A cap would
+have to shorten names when renaming, or a name just under it would break the cap once `-2` is
+added, and that rule is more than this edge case is worth.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
