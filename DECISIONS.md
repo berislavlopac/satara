@@ -275,6 +275,46 @@ The local emulator, MiniStack, enforces a presigned PUT fully: signature, expiry
 size. For a presigned POST it checks only the size range, so a local run would not show how
 the rest of a POST is refused.
 
+### The deferred flow
+
+The client creates an archive with `POST /archives`, sending the archive's optional name and
+each file's name and size. The service applies the direct flow's rules: the limits, the name
+checks and the renaming. It answers `201` with the archive ID, a status URL and a presigned PUT
+URL for each file. The client uploads each file to its URL and polls `GET /archives/{id}`,
+which answers `pending` with the number of files received, `ready` with a presigned download
+URL, or `failed`.
+
+The bucket holds all the state, without a database. Each archive has its own prefix:
+
+- `archives/<id>/manifest.json`, written once when the archive is created: the archive's name
+  and each file's name and size.
+- `archives/<id>/files/<n>`, each file under its position, so client file names never appear
+  in storage keys.
+- `archives/<id>/<name>.zip`, the finished archive.
+
+An archive only ever gains objects, so its status is worked out from what the bucket holds and
+nothing is updated in place.
+
+S3 sends a notification to a queue for every upload. A consumer, running as its own service,
+reads the queue and calls the `check_uploads` use case, which loads the archive from the
+bucket. The archive, a domain entity, compares the files received with the manifest and
+records an `AllFilesReceived` event when every file is there and the ZIP is not yet built. The
+use case passes the archive's events to an event broker, a port whose one adapter runs the
+subscribed handlers in the same process, and the handler builds the archive: it reads each
+file from the bucket and streams the ZIP back with a multipart upload.
+
+The domain decides when an archive is complete, and the build only reacts to that, which is
+what the event is for. Each notification checks the whole archive, so their order does not
+matter, and one delivered twice or after the ZIP exists builds nothing. If the last two files
+land together, both checks may find the archive complete and build it twice with the same
+result; that is accepted rather than prevented with a lock.
+
+The deferred endpoints are mounted only when a setting switches them on; it is off by default,
+so the image still runs on its own. Docker Compose runs the emulator, the API, the consumer and
+a one-off step that creates the bucket and the queue and connects the notifications.
+Integration tests run against that stack, locally and in CI against an emulator container.
+Nothing is deployed.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
@@ -289,3 +329,18 @@ Each step is a separate, reviewed commit or small group of commits.
 7. Docker image.
 8. CI pipeline and pre-commit hooks.
 9. README and the AI development write-up.
+
+## Build order for the deferred flow
+
+Each step is a separate, reviewed commit or small group of commits.
+
+1. Settings: the switch for the flow, the bucket, the queue, the storage endpoint and how long
+   a presigned URL lasts.
+2. Domain: the manifest, the archive's completeness and its event, the storage and event
+   broker ports.
+3. Application: creating an archive, reporting its status and `check_uploads`, tested with
+   fakes.
+4. The S3 adapter, the Compose stack with its setup step, and integration tests.
+5. The endpoints, `POST /archives` and `GET /archives/{id}`.
+6. The consumer and the build handler, as a Compose service.
+7. CI's integration job, the docs, and version 0.2.0.
