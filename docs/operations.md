@@ -51,8 +51,10 @@ address, so the URL must be signed for the address the client will use.
 - The bucket, notifying the queue of every object created under `uploads/`, and removing the
   parts of an unfinished multipart upload after a day. A build stopped before it can abort its
   upload, by a stop signal that outlasts the container's grace period, leaves its parts behind.
-- The queue, with a visibility timeout long enough for a build (30 minutes in the local
-  stack), and a dead-letter queue that takes a message after three failed attempts.
+- The queue, with a visibility timeout of a good part of an hour (30 minutes in the local
+  stack), and a dead-letter queue that takes a message after three failed attempts. A build
+  may outlast the timeout: one consumer receives nothing more until it has finished its batch,
+  so the message is not delivered again meanwhile.
 
 The local stack's setup step, `compose/storage-setup.sh`, creates all of these. On AWS the
 queue also needs a policy letting the bucket send to it. Nothing reads the dead-letter queue:
