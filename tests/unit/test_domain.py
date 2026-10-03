@@ -170,6 +170,7 @@ def test_archive_ID_accepts_a_version_7_UUID_or_its_text(value):
 
 @pytest.mark.parametrize(
     "value",
+    # A bare number is refused before it reaches the ID's own validation, so it goes in a dict.
     [{"id": 7}, "not a UUID", str(uuid4())],
     ids=["neither a UUID nor text", "text that is no UUID", "a version 4 UUID"],
 )

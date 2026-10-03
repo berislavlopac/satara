@@ -87,7 +87,7 @@ async def test_archive_files_turns_uploaded_files_into_a_named_archive(
         "an unusable archive name",
     ],
 )
-def test_archive_files_refuses_files_it_cannot_archive(
+def test_archive_files_refuses_a_request_it_cannot_archive(
     service, build_archive_files_command, files, archive_name, error
 ):
     command = build_archive_files_command(*files, archive_name=archive_name)

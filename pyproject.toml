@@ -137,13 +137,7 @@ docstring-code-format = false
 # loads by name. What else only a library uses is listed in the allow-list.
 paths = ["satara", "scripts", "vulture_whitelist.py"]
 min_confidence = 60
-ignore_decorators = [
-    "@*router.*",
-    "@model_validator",
-    "@model_serializer",
-    "@property",
-    "@asynccontextmanager",
-]
+ignore_decorators = ["@*router.*", "@model_validator", "@model_serializer"]
 ignore_names = ["model_config", "create_app"]
 
 [tool.deptry.per_rule_ignores]
