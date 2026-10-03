@@ -92,6 +92,7 @@ These will be revisited when work on the deferred flow starts.
   AWS locally.
 - Uploads use presigned POST, which can limit the size of an upload. If the emulator does not
   support it, presigned PUT without a size limit is the fallback, recorded as a trade-off.
+  Replaced on 2026-10-03 by presigned PUT with a signed size.
 - Each archive has its own directory in the bucket, named by the archive ID, holding a
   manifest written once at creation.
 - The bucket sends a notification for each upload to a queue, read by a consumer that runs as
@@ -256,6 +257,23 @@ lists the errors and names the field at fault. The service's own 422s, for an un
 archive name, gave `detail` as a string, and OpenAPI can describe only one body per status. So
 the service answers its own 422s through the framework's validation handler, and every 422 has
 one form. The 400 and 413 refusals keep a string `detail`.
+
+### Deferred uploads use presigned PUT
+
+Each file is uploaded with a presigned PUT URL that signs the file's size, replacing presigned
+POST. The client declares each file's name and size when it creates the archive, so the limits
+on file count, file size and total size are checked before any upload starts, as in the direct
+flow, and storage then accepts only a body of exactly the declared size.
+
+PUT is a plain request whose body is the file, to a single URL, where POST is a form that must
+repeat every signed field. It enforces an exact size where POST enforces a range, it extends to
+multipart uploads for files over 5 GB, and S3-compatible stores support it more widely. POST's
+strengths are uploads straight from an HTML form, sizes not known in advance, and one policy
+for many keys, none of which this service needs.
+
+The local emulator, MiniStack, enforces a presigned PUT fully: signature, expiry and the signed
+size. For a presigned POST it checks only the size range, so a local run would not show how
+the rest of a POST is refused.
 
 ## Build order for the direct flow
 
