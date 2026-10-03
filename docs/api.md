@@ -40,6 +40,9 @@ written without the ZIP64 extensions; the default limits stay far below that.
 - A file whose name is already taken in the archive is renamed by adding `-2`, `-3` and so on
   before the first dot, ignoring a dot at the very start: a second `report.tar.gz` becomes
   `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`.
+- Names that differ only in letter case or Unicode form count as the same name, because the
+  default file systems of macOS and Windows treat them as one: `Report.txt` and `report.txt`
+  become `Report.txt` and `report-2.txt`.
 - No file is dropped, and files keep the order in which they were sent.
 
 ### The archive's name

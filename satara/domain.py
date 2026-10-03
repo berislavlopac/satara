@@ -64,6 +64,11 @@ class EntryName(ValueObject):
     def __str__(self) -> str:
         return self.value
 
+    @property
+    def folded(self) -> str:
+        """The name as compared for a clash, ignoring letter case and Unicode form."""
+        return unicodedata.normalize("NFD", unicodedata.normalize("NFD", self.value).casefold())
+
     def with_counter(self, counter: int) -> Self:
         """Return this name with a number added, to tell it apart from a name already taken.
 
@@ -119,9 +124,10 @@ class ArchiveID(IDModel):
 class Archive(Entity):
     """A collection of files to be packed together, each under a name of its own.
 
-    No two files in an archive share a name: a file whose name is already taken is renamed
-    when it is added, never dropped and never replacing another. Files keep the order in which
-    they were added.
+    No two files in an archive share a name, and names that differ only in letter case or
+    Unicode form count as the same, as many file systems treat them. A file whose name is
+    already taken is renamed when it is added, never dropped and never replacing another. Files
+    keep the order in which they were added.
     """
 
     archive_id: Annotated[ArchiveID, Field(default_factory=ArchiveID.generate)]
@@ -129,7 +135,8 @@ class Archive(Entity):
     name: Annotated[ArchiveName, Field(default_factory=ArchiveName.generate)]
     """The name of the archive; generated from the time of creation unless one is given."""
 
-    _entries: dict[EntryName, ArchiveEntry] = PrivateAttr(default_factory=dict)
+    _entries: dict[str, ArchiveEntry] = PrivateAttr(default_factory=dict)
+    """The entries, keyed by their folded names."""
 
     @property
     def identity(self) -> ArchiveID:
@@ -141,7 +148,7 @@ class Archive(Entity):
         return tuple(self._entries.values())
 
     def __contains__(self, name: object) -> bool:
-        return name in self._entries
+        return isinstance(name, EntryName) and name.folded in self._entries
 
     def __len__(self) -> int:
         return len(self._entries)
@@ -161,11 +168,11 @@ class Archive(Entity):
         """
         unique_name = name
         counter = 2
-        while unique_name in self._entries:
+        while unique_name in self:
             unique_name = name.with_counter(counter)
             counter += 1
         entry = ArchiveEntry(name=unique_name, content=content)
-        self._entries[unique_name] = entry
+        self._entries[unique_name.folded] = entry
         return entry
 
 
