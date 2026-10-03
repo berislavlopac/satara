@@ -71,7 +71,7 @@ class GetArchiveStatusResult(Result):
     archive_id: ArchiveID
     """The identity of the archive."""
     status: ArchiveStatus
-    """Whether the archive is still pending or ready."""
+    """How far the archive has got: pending, ready or failed."""
     files_received: int
     """How many of the archive's files have arrived."""
     files_expected: int

@@ -166,7 +166,7 @@ class ArchiveStatusResponse(APIModel):
     archive_id: UUID
     """The identity of the archive."""
     status: ArchiveStatus
-    """`pending` until the archive is built, then `ready`."""
+    """`pending` until the archive is built, then `ready`, or `failed` if it cannot be built."""
     files_received: int
     """How many of the archive's files have been uploaded."""
     files_expected: int
