@@ -8,9 +8,10 @@ signal ends it once the batch of messages in hand is handled.
 import asyncio
 import signal
 import tempfile
+import threading
+import time
 from pathlib import Path
 
-from satara.common.heartbeat import start_heartbeat
 from satara.common.logging import get_logger
 from satara.config import Settings
 from satara.wiring import open_consumer
@@ -19,6 +20,24 @@ HEARTBEAT_FILE = Path(tempfile.gettempdir()) / "satara-consumer-alive"
 """The file the consumer touches every 15 seconds while it runs, for a health check to test."""
 
 log = get_logger("satara.consumer")
+
+
+def start_heartbeat(path: Path, interval: float = 15.0) -> None:
+    """Touch `path` every `interval` seconds from a daemon thread, for the process's lifetime.
+
+    The thread runs apart from the event loop, so a long piece of work does not stop it.
+
+    Args:
+        path: The file to touch.
+        interval: The seconds between touches.
+    """
+
+    def beat() -> None:
+        while True:
+            path.touch()
+            time.sleep(interval)
+
+    threading.Thread(target=beat, daemon=True, name="heartbeat").start()
 
 
 async def main(settings: Settings) -> None:

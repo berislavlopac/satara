@@ -96,7 +96,7 @@ rather than the domain's ports, as neither speaks of archives.
 Settings are read in `config.py`, and `scripts/consumer.py` starts the consumer the way the
 server starts the application. `common/` holds generic utilities with no project vocabulary:
 the base models, domain events and their broker port, the message queue's protocol, logging,
-middleware for a body limit on one path, and the heartbeat.
+and middleware for a body limit on one path.
 
 One archive entity serves both flows. In the direct flow its files' content is there from the
 start; in the deferred flow it arrives later, and the archive tracks which files have arrived
