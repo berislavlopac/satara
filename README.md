@@ -1,7 +1,9 @@
 # Satara
 
-A web service that packs uploaded files into a ZIP archive. A client sends its files in a single
-request and receives the archive in the response, streamed as it is written.
+A web service that packs uploaded files into a ZIP archive. In the direct flow, a client sends
+its files in a single request and receives the archive in the response, streamed as it is
+written. In the deferred flow, for larger archives, the client uploads each file straight to
+storage and fetches the archive once a queue consumer has built it.
 
 ## Quick start
 
@@ -18,6 +20,16 @@ Then:
 curl --form files=@notes.txt --form files=@data.csv --form name=report \
     --output report.zip http://localhost:8000/archive-files
 ```
+
+The deferred flow needs storage and the consumer. Docker Compose runs them locally, with an
+emulator standing in for S3 and SQS:
+
+```shell
+docker compose up -d --build --wait
+```
+
+[Getting started](docs/getting-started.md) walks through creating an archive, uploading its
+files and downloading the result.
 
 For development, with [uv](https://docs.astral.sh/uv/):
 

@@ -25,6 +25,30 @@ curl --form files=@notes.txt --form files=@data.csv --form name=report \
 
 Interactive API documentation is served at <http://localhost:8000/docs>.
 
+## Run the deferred flow with Docker Compose
+
+The deferred flow needs storage and a queue consumer. Docker Compose runs them all locally, with
+an emulator standing in for S3 and SQS:
+
+```shell
+docker compose up -d --build --wait
+```
+
+Then create an archive, upload its file to the URL in the answer, and follow the status URL
+until it gives a download URL:
+
+```shell
+printf 'hello\n' > notes.txt
+curl --json '{"name": "report", "files": [{"name": "notes.txt", "size": 6}]}' \
+    http://localhost:8000/archives
+curl --upload-file notes.txt '<the upload URL>'
+curl '<the status URL>'
+curl --output report.zip '<the download URL>'
+```
+
+`docker compose down` stops it all. [Using the API](api.md#deferred-archives) describes each
+step.
+
 ## Set it up for development
 
 The project uses [uv](https://docs.astral.sh/uv/) for its environment and dependencies. uv
@@ -42,16 +66,17 @@ Tasks are run through `just` recipes. `just` is one of the development dependenc
 `uv run just <recipe>` works without installing it separately; with `just` installed, the
 `uv run` prefix can be dropped.
 
-| Recipe        | What it does                                                    |
-|---------------|-----------------------------------------------------------------|
-| `serve`       | Serve the API locally, reloading on code changes.               |
-| `test`        | Run the unit tests.                                             |
-| `test-cov`    | Run the unit tests with a coverage report and the 85% floor.    |
-| `check`       | Run the lint, formatting, dependency and type checks.           |
-| `reformat`    | Reformat the code and sort the imports.                         |
-| `docs`        | Serve this documentation locally, reloading on changes.         |
-| `build-docs`  | Build this documentation, failing on any warning.               |
-| `build-image` | Build the Docker image.                                         |
-| `run-image`   | Run the Docker image, serving on port 8000.                     |
+| Recipe             | What it does                                                 |
+|--------------------|--------------------------------------------------------------|
+| `serve`            | Serve the API locally, reloading on code changes.            |
+| `test`             | Run the unit tests.                                          |
+| `test-cov`         | Run the unit tests with a coverage report and the 85% floor. |
+| `test-integration` | Run the integration tests against the Compose stack.         |
+| `check`            | Run the lint, formatting, dependency and type checks.        |
+| `reformat`         | Reformat the code and sort the imports.                      |
+| `docs`             | Serve this documentation locally, reloading on changes.      |
+| `build-docs`       | Build this documentation, failing on any warning.            |
+| `build-image`      | Build the Docker image.                                      |
+| `run-image`        | Run the Docker image, serving on port 8000.                  |
 
 `just --list` shows them all.
