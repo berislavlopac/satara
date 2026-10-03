@@ -1,5 +1,6 @@
 """Service settings, read from the environment."""
 
+from datetime import timedelta
 from typing import Annotated
 
 from pydantic import ByteSize, Field
@@ -37,3 +38,17 @@ class Settings(BaseSettings):
 
     MAX_TOTAL_SIZE: Size = ByteSize(200 * MIB)
     """The largest size of a request body."""
+
+    DEFERRED_ENABLED: bool = False
+    """Whether the deferred flow's endpoints are served."""
+
+    BUCKET: str = "satara-archive-deferred-flow-storage"
+    """The bucket that holds the deferred flow's archives."""
+
+    QUEUE: str = "satara-uploads"
+    """The name of the queue the bucket notifies of each upload."""
+
+    PRESIGNED_URL_LIFETIME: Annotated[
+        timedelta, Field(gt=timedelta(0), le=timedelta(days=7))
+    ] = timedelta(hours=1)
+    """How long an upload or download URL stays valid; up to 7 days, the most S3 allows."""
