@@ -48,7 +48,7 @@ def save_download(response: Any, output: Path) -> Path:  # noqa: ANN401
 
 def archive_directly(url: str, files: list[Path], name: str | None, output: Path) -> Path:
     """Send the files in one request and save the archive returned."""
-    boundary = uuid.uuid4().hex
+    boundary = uuid.uuid7().hex
     parts = [
         f'--{boundary}\r\nContent-Disposition: form-data; name="files"; '
         f'filename="{file.name}"\r\n\r\n'.encode()
