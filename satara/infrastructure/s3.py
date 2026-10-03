@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from aiobotocore.response import StreamingBody
 
+from satara.common.logging import get_logger
 from satara.common.models import FrozenModel
 from satara.domain import (
     Archive,
@@ -32,6 +33,8 @@ PART_SIZE = 16 * 2**20
 
 S3 takes at most 10,000 parts, so this bounds a built archive at about 156 GiB.
 """
+
+log = get_logger(__name__)
 
 _ARCHIVE = "archive"
 _FAILED = "failed"
@@ -152,7 +155,9 @@ class S3FileStorage:
             await self._client.abort_multipart_upload(
                 Bucket=self._bucket, Key=key, UploadId=upload_id
             )
+            log.warning("Archive upload aborted.", key=key, parts_sent=len(parts))
             raise
+        log.debug("Archive uploaded.", key=key, parts=len(parts))
 
     async def create_download_url(self, archive_id: ArchiveID, file_name: str) -> str:
         """Return a presigned URL that serves the built archive as an attachment."""

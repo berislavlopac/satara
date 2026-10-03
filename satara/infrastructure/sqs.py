@@ -3,10 +3,14 @@
 import json
 from typing import TYPE_CHECKING
 
+from satara.common.logging import get_logger
 from satara.common.queue import QueueMessage
 
 if TYPE_CHECKING:
     from types_aiobotocore_sqs import SQSClient
+
+
+log = get_logger(__name__)
 
 
 class SQSMessageQueue:
@@ -36,7 +40,7 @@ class SQSMessageQueue:
             WaitTimeSeconds=self._wait_seconds,
             MessageSystemAttributeNames=["ApproximateReceiveCount"],
         )
-        return [
+        messages = [
             QueueMessage(
                 body=message.get("Body", ""),
                 handle=message["ReceiptHandle"],
@@ -44,6 +48,9 @@ class SQSMessageQueue:
             )
             for message in response.get("Messages", [])
         ]
+        if messages:
+            log.debug("Messages received.", count=len(messages))
+        return messages
 
     async def delete(self, message: QueueMessage) -> None:
         """Delete the message, so that it is not delivered again."""

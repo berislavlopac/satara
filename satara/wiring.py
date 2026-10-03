@@ -11,6 +11,7 @@ from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 from satara.application.base import Limits, UploadRejectedError
 from satara.application.deferred import ArchiveBuilder, DeferredArchiveService
 from satara.application.direct import ArchiveService
+from satara.common.logging import get_logger
 from satara.common.middleware import PathBodyLimitMiddleware
 from satara.config import Settings
 from satara.domain import AllFilesReceived, ArchiveNotFoundError
@@ -25,6 +26,8 @@ from satara.presentation.http import (
     handle_upload_rejected,
     router,
 )
+
+log = get_logger(__name__)
 
 DECLARATION_SIZE = 1024
 """The body size allowed for each file declared when creating an archive, in bytes."""
@@ -85,6 +88,7 @@ async def open_consumer(settings: Settings) -> AsyncGenerator[Consumer]:
         get_session().create_client("sqs") as sqs,
     ):
         queue_url = (await sqs.get_queue_url(QueueName=settings.QUEUE))["QueueUrl"]
+        log.info("Consumer configured.", bucket=settings.BUCKET, queue=settings.QUEUE)
         yield Consumer(SQSMessageQueue(sqs, queue_url), service)
 
 
@@ -135,4 +139,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(router)
     if settings.DEFERRED_ENABLED:
         app.include_router(deferred_router)
+    log.info(
+        "Service configured.",
+        deferred_enabled=settings.DEFERRED_ENABLED,
+        **_to_limits_summary(settings),
+    )
     return app
+
+
+def _to_limits_summary(settings: Settings) -> dict[str, object]:
+    summary: dict[str, object] = {
+        "max_files": settings.MAX_FILES,
+        "max_file_size": settings.MAX_FILE_SIZE,
+        "max_total_size": settings.MAX_TOTAL_SIZE,
+    }
+    if settings.DEFERRED_ENABLED:
+        summary |= {
+            "deferred_max_files": settings.DEFERRED_MAX_FILES,
+            "deferred_max_file_size": settings.DEFERRED_MAX_FILE_SIZE,
+            "deferred_max_total_size": settings.DEFERRED_MAX_TOTAL_SIZE,
+            "bucket": settings.BUCKET,
+        }
+    return summary

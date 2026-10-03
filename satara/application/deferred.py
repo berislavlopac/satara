@@ -1,5 +1,8 @@
 """The deferred flow: files declared first, uploaded later, and archived once all arrive."""
 
+import time
+from collections.abc import AsyncIterator
+
 from pydantic import NonNegativeInt
 
 from satara.application.base import (
@@ -10,6 +13,7 @@ from satara.application.base import (
     to_entry_name,
 )
 from satara.common.events import EventBroker
+from satara.common.logging import get_logger
 from satara.common.models import FrozenModel
 from satara.domain import (
     AllFilesReceived,
@@ -20,6 +24,8 @@ from satara.domain import (
     ArchiveWriter,
     FileStorage,
 )
+
+log = get_logger(__name__)
 
 
 class DeclaredFile(FrozenModel):
@@ -142,6 +148,12 @@ class DeferredArchiveService:
             content = self._storage.open_file(archive.archive_id, position)
             archive.add(to_entry_name(file.name), file.size, content)
         await self._repository.add(archive)
+        log.info(
+            "Archive created.",
+            archive_id=str(archive.archive_id),
+            files=len(archive),
+            total_size=sum(entry.size for entry in archive.entries),
+        )
         uploads = [
             FileUpload(
                 name=str(entry.name),
@@ -187,6 +199,13 @@ class DeferredArchiveService:
         """
         archive = await self._repository.get(command.archive_id)
         archive.check_complete()
+        log.debug(
+            "Archive checked.",
+            archive_id=str(archive.archive_id),
+            files_received=len(archive.received),
+            files_expected=len(archive),
+            status=archive.status,
+        )
         await self._broker.publish(archive.pull_events())
 
     async def record_build_failure(self, command: RecordBuildFailureCommand) -> None:
@@ -201,6 +220,7 @@ class DeferredArchiveService:
         archive = await self._repository.get(command.archive_id)
         if archive.is_complete and not archive.is_built:
             await self._repository.mark_failed(command.archive_id)
+            log.error("Archive marked failed.", archive_id=str(archive.archive_id))
 
 
 class ArchiveBuilder:
@@ -223,5 +243,27 @@ class ArchiveBuilder:
     async def handle(self, event: AllFilesReceived) -> None:
         """Build the archive, reading each file from storage as the archive is written."""
         archive = await self._repository.get(event.archive_id)
-        chunks = self._writer.write(archive)
+        archive_id = str(archive.archive_id)
+        log.info(
+            "Building the archive.",
+            archive_id=archive_id,
+            files=len(archive),
+            total_size=sum(entry.size for entry in archive.entries),
+        )
+        started = time.monotonic()
+        written = 0
+
+        async def count(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+            nonlocal written
+            async for chunk in chunks:
+                written += len(chunk)
+                yield chunk
+
+        chunks = count(self._writer.write(archive))
         await self._storage.save_archive(archive.archive_id, self._writer.media_type, chunks)
+        log.info(
+            "Archive built.",
+            archive_id=archive_id,
+            size=written,
+            seconds=round(time.monotonic() - started, 1),
+        )

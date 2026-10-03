@@ -11,17 +11,25 @@ import tempfile
 from pathlib import Path
 
 from satara.common.heartbeat import start_heartbeat
+from satara.common.logging import get_logger
 from satara.config import Settings
 from satara.wiring import open_consumer
 
 HEARTBEAT_FILE = Path(tempfile.gettempdir()) / "satara-consumer-alive"
+
+log = get_logger("satara.consumer")
 
 
 async def main() -> None:
     """Run the consumer, with a heartbeat, until the process is told to stop."""
     start_heartbeat(HEARTBEAT_FILE)
     stop = asyncio.Event()
-    asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, stop.set)
+
+    def request_stop() -> None:
+        log.info("Stop signal received; finishing the current batch.")
+        stop.set()
+
+    asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, request_stop)
     async with open_consumer(Settings()) as consumer:
         await consumer.run(stop)
 
