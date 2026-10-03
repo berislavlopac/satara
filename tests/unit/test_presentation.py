@@ -118,6 +118,14 @@ def test_archive_files_refuses_a_file_without_a_usable_name(client):
     assert response.json() == {"detail": "'..' is not a usable file name"}
 
 
+def test_archive_files_quotes_a_refused_file_name_as_it_was_sent(client):
+    files = [("files", (".", b"x"))]
+
+    response = client.post("/archive-files", files=files)
+
+    assert response.json() == {"detail": "'.' is not a usable file name"}
+
+
 def test_archive_files_refuses_an_unusable_archive_name(client):
     files = [("files", ("a.txt", b"a"))]
 

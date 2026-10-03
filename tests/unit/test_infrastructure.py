@@ -6,6 +6,7 @@ from io import BytesIO
 
 import pytest
 from hypothesis import given, strategies as st
+from pydantic import ValidationError
 
 from satara.domain import Archive, EntryName
 from satara.infrastructure import ZipArchiveWriter
@@ -36,6 +37,14 @@ file_names = st.text(
     min_size=1,
 ).filter(lambda value: value not in {".", ".."})
 files = st.lists(st.tuples(file_names, st.binary(max_size=1024)), max_size=10)
+
+
+def is_entry_name(value):
+    try:
+        EntryName.model_validate(value)
+    except ValidationError:
+        return False
+    return True
 
 
 async def test_zip_archive_writer_keeps_names_content_and_order(build_archive):
@@ -99,3 +108,17 @@ async def test_zip_archive_writer_returns_every_file_as_it_was_added(build_archi
     data = b"".join([chunk async for chunk in ZipArchiveWriter().write(archive)])
 
     assert read_back(data) == expected
+
+
+@given(st.text().filter(is_entry_name))
+async def test_zip_archive_writer_keeps_any_name_an_entry_may_have(build_archive, name):
+    """Writes every name the domain accepts exactly as it is.
+
+    The text is drawn from all of Unicode, so a character the format would alter or drop is
+    found here rather than in an extracted archive.
+    """
+    archive = build_archive([(name, b"")])
+
+    data = b"".join([chunk async for chunk in ZipArchiveWriter().write(archive)])
+
+    assert read_back(data) == [(name, b"")]

@@ -29,6 +29,12 @@ def test_entry_name_refuses_anything_but_a_single_file_name(value):
         EntryName.model_validate(value)
 
 
+@given(st.tuples(st.text(), st.characters(categories=["Cc"]), st.text()).map("".join))
+def test_entry_name_refuses_a_name_holding_a_control_character(value):
+    with pytest.raises(ValidationError):
+        EntryName.model_validate(value)
+
+
 def test_entry_name_accepts_any_characters_a_file_name_may_hold():
     entry_name = EntryName.model_validate("naïve résumé (1).txt")
 
