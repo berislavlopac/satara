@@ -17,7 +17,7 @@ def build_archive(memory_content):
     def build_archive(files):
         archive = Archive()
         for name, data in files:
-            archive.add(EntryName.model_validate(name), memory_content(data))
+            archive.add(EntryName.model_validate(name), len(data), memory_content(data))
         return archive
 
     return build_archive
@@ -90,7 +90,7 @@ async def test_zip_archive_writer_dates_files_with_the_time_the_archive_was_writ
 async def test_zip_archive_writer_produces_bytes_before_a_file_is_fully_read(memory_content):
     content = memory_content(os.urandom(1024 * 1024))
     archive = Archive()
-    archive.add(EntryName.model_validate("large.bin"), content)
+    archive.add(EntryName.model_validate("large.bin"), len(content.data), content)
 
     async with aclosing(ZipArchiveWriter().write(archive)) as chunks:
         await anext(chunks)

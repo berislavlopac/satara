@@ -137,7 +137,7 @@ class ArchiveService:
                     f"{file.name!r} is {file.size} bytes; "
                     f"at most {self._max_file_size} are allowed"
                 )
-            archive.add(_to_entry_name(file.name), file.content)
+            archive.add(_to_entry_name(file.name), file.size, file.content)
         return ArchiveFilesResult(
             archive_id=archive.archive_id,
             file_name=f"{archive.name}{self._writer.suffix}",
