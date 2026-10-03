@@ -512,6 +512,17 @@ its settings ignore the decorators and names they use, and an allow-list file na
 attributes and methods that only a library reads or calls, each with what uses it. A new hook
 of that kind needs a line there; the check names it when it fails.
 
+### The integration tests run when what they test changes
+
+Starting the local stack for the integration tests takes about a minute, most of it building
+the image and pulling the emulator, while the tests themselves take seconds. They moved from
+`ci.yml` to a workflow of their own, which runs only when a change touches what they exercise:
+the code, the scripts, the image and the stack, the dependencies, the recipes, or the tests and
+the workflow themselves. A change to the docs alone skips them. Running them only after merging
+was rejected, as they are the one check of the whole flow; caching the image's build was left
+out, as the build is already quick. A skipped workflow would block merging if it were a required
+check, which it is not.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

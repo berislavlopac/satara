@@ -2,11 +2,12 @@
 
 The same checks run in two places, through the same `just` recipes and the same locked tool versions.
 
-| Where                      | When                                  | What                                                                                           |
-|----------------------------|---------------------------------------|------------------------------------------------------------------------------------------------|
-| Git hooks, run by prek     | Before each commit                    | File hygiene, then the lint, formatting, dependency, dead-code and type checks.                |
-| GitHub Actions, `ci.yml`   | Every pull request and push to `main` | The same checks, the unit tests with the coverage floor, the image, and the integration tests. |
-| GitHub Actions, `docs.yml` | Changes to the documentation          | This documentation, built with every warning treated as an error.                              |
+| Where                             | When                                                                               | What                                                                            |
+|-----------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| Git hooks, run by prek            | Before each commit                                                                 | File hygiene, then the lint, formatting, dependency, dead-code and type checks. |
+| GitHub Actions, `ci.yml`          | Every pull request and push to `main`                                              | The same checks, the unit tests with the coverage floor, and the image.         |
+| GitHub Actions, `integration.yml` | Pull requests and pushes to `main` that change what the integration tests exercise | The integration tests.                                                          |
+| GitHub Actions, `docs.yml`        | Changes to the documentation                                                       | This documentation, built with every warning treated as an error.               |
 
 The hooks catch problems before a commit exists, but they can be skipped or never installed; CI cannot. The tests run only in CI, since slow hooks get skipped.
 
@@ -14,7 +15,7 @@ The hooks catch problems before a commit exists, but they can be skipped or neve
 
 - **Lint, types and tests:** the checks, including one that finds code nothing uses, then the unit tests with a coverage floor of 90%. The unit tests need no Docker: the S3 and SQS adapters run against an AWS emulator started inside the test process.
 - **Docker image:** builds the image, starts it, waits for its health check to pass, and archives one real upload, so it shows the image serves requests and not only that it builds.
-- **Integration tests:** start the local Compose stack and run the integration tests against it. They show what only a full emulator can: storage refusing an upload of the wrong size, a download served under its name, and an archive taken through the whole deferred flow.
+- **Integration tests,** in a workflow of their own: start the local Compose stack and run the integration tests against it. They show what only a full emulator can: storage refusing an upload of the wrong size, a download served under its name, and an archive taken through the whole deferred flow. Starting the stack takes about a minute, so they run only when a change touches what they exercise: the code, the scripts, the image, the stack, the dependencies, the recipes, or the tests themselves. A change to the docs alone skips them.
 
 Third-party actions are pinned to commits, since a tag can be moved to other code.
 
