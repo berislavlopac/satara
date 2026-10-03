@@ -1,5 +1,6 @@
 import json
 import logging
+from http import HTTPStatus
 
 import pytest
 
@@ -14,7 +15,9 @@ def test_web_server_logs_are_rendered_as_JSON(caplog):
     """
     access = logging.getLogger("uvicorn.access")
     with caplog.at_level(logging.INFO, logger=access.name):
-        access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", "/archives", "1.1", 200)
+        access.info(
+            '%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", "/archives", "1.1", HTTPStatus.OK
+        )
 
     [record] = caplog.records
     rendered = json.loads(access.handlers[0].format(record))
@@ -33,14 +36,16 @@ def test_web_server_access_log_leaves_out_a_silenced_path(caplog):
 
     with caplog.at_level(logging.INFO, logger=access.name):
         for path in ["/health", "/health?verbose=1", "/archives", "/healthy"]:
-            access.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", path, "1.1", 200)
+            access.info(
+                '%s - "%s %s HTTP/%s" %d', "10.0.0.1:5000", "GET", path, "1.1", HTTPStatus.OK
+            )
 
     paths = [record.args[2] for record in caplog.records]
     assert paths == ["/archives", "/healthy"]
 
 
 @pytest.fixture
-def logging_configured_for():
+def configure_logging_for():
     """Configure logging for or against debug mode, and restore the default afterwards."""
     yield configure_logging
     configure_logging(debug=False)
@@ -52,22 +57,22 @@ def logging_configured_for():
     ids=["debug mode", "otherwise"],
 )
 def test_logging_lowers_the_loggers_of_libraries_only_in_debug_mode(
-    logging_configured_for, debug, expected
+    configure_logging_for, debug, expected
 ):
-    logging_configured_for(debug=debug)
+    configure_logging_for(debug=debug)
 
     levels = {logging.getLogger(name).level for name in ["botocore", "aiobotocore", "urllib3"]}
 
     assert levels == {expected}
 
 
-def test_logging_logs_everything_at_debug_level_in_debug_mode(logging_configured_for):
+def test_logging_logs_everything_at_debug_level_in_debug_mode(configure_logging_for):
     """Lowers the service's loggers too, though they were made before debug mode was set.
 
     A module makes its logger when it is imported, before the settings are read.
     """
     service_logger = get_logger("satara.made_on_import")
-    logging_configured_for(debug=True)
+    configure_logging_for(debug=True)
 
     levels = {
         logger.getEffectiveLevel()

@@ -74,6 +74,19 @@ class MemoryArchiveRepository(ArchiveRepository):
             raise ArchiveNotFoundError(str(archive_id)) from None
 
 
+class FailingRepository(ArchiveRepository):
+    """A repository whose every call fails, as when storage cannot be reached."""
+
+    async def add(self, archive: Archive) -> None:
+        raise RuntimeError("The repository failed")
+
+    async def mark_failed(self, archive_id: ArchiveID) -> None:
+        raise RuntimeError("The repository failed")
+
+    async def get(self, archive_id: ArchiveID) -> Archive:
+        raise RuntimeError("The repository failed")
+
+
 class StoredContent(Content):
     """A file's content in `MemoryFileStorage`, looked up only when first read."""
 
