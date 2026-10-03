@@ -238,6 +238,17 @@ it without trouble; only that one file fails to extract on the client's machine.
 have to shorten names when renaming, or a name just under it would break the cap once `-2` is
 added, and that rule is more than this edge case is worth.
 
+### The limits have ceilings
+
+Two limits are capped, so that a setting cannot promise what the service cannot keep:
+
+- `MAX_FILES` is at most 1000. The form parser refuses more parts than that before the
+  service sees the request, so a higher setting would have no effect.
+- `MAX_FILE_SIZE` is at most 2000 MiB. The archive is written without the ZIP64 extensions,
+  which allow a file of up to 2 GiB, compressed or not. A larger file would fail after the
+  response had started, cutting the download short. The margin covers compression, which
+  makes a file that does not compress slightly larger.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

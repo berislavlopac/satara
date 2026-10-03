@@ -29,8 +29,9 @@ The response has no `Content-Length`: its size is not known until the archive is
 it is sent in chunks. Every check is made before the first byte is sent. A failure after that,
 such as a file that cannot be read, can only cut the connection.
 
-Each file is compressed with deflate. A single file is limited to 2 GiB, as the archive is
-written without the ZIP64 extensions; the default limits stay far below that.
+Each file is compressed with deflate. The archive is written without the ZIP64 extensions, so
+a file must stay under 2 GiB even after compression, and compression makes a file that does not
+compress slightly larger. The limit for a single file can therefore be set to at most 2000 MiB.
 
 ### File names in the archive
 
