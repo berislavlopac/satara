@@ -7,7 +7,7 @@ storage and fetches the archive once a queue consumer has built it.
 
 ## Try it in five minutes
 
-All it needs is [Docker](https://docs.docker.com/get-docker/) with Compose, `curl`, and Python 3.10 or later. This runs both flows, from a clone to two downloaded archives:
+This runs both flows, from a clone to two downloaded archives. On your own machine it needs only [Docker](https://docs.docker.com/get-docker/) with Compose, `curl`, and Python 3.10 or later for the small client script. The service itself runs in the containers, on Python 3.14, with everything it needs inside its image.
 
 ```shell
 git clone https://github.com/berislavlopac/satara.git && cd satara
