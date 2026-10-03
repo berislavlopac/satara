@@ -248,7 +248,8 @@ Two limits are capped, so that a setting cannot promise what the service cannot 
 - `MAX_FILE_SIZE` is at most 2000 MiB. The archive is written without the ZIP64 extensions,
   and without them the ZIP library writes a file of at most 2 GiB, compressed or not. A larger
   file would fail after the response had started, cutting the download short. The margin
-  covers compression, which makes a file that does not compress slightly larger.
+  covers compression, which makes a file that does not compress slightly larger. Replaced
+  later the same day: large files are written with ZIP64, and the cap is gone.
 
 ### Every 422 has the web framework's form
 
@@ -314,6 +315,16 @@ so the image still runs on its own. Docker Compose runs the emulator, the API, t
 a one-off step that creates the bucket and the queue and connects the notifications.
 Integration tests run against that stack, locally and in CI against an emulator container.
 Nothing is deployed.
+
+### Large files are written with ZIP64
+
+The writer tells the ZIP library each file's size before writing it, and the library then uses
+the ZIP64 extensions for a file too large for the basic format. Streamed without a size, the
+library cannot tell in advance and writes no file over 2 GiB, which is what the 2000 MiB cap on
+`MAX_FILE_SIZE` worked around. Both flows know every file's size, so the cap is removed.
+
+Some older unzip tools cannot read ZIP64, and the macOS Archive Utility has had trouble with it
+in streamed archives. That affects only archives holding a file of about 2 GiB or more.
 
 ## Build order for the direct flow
 

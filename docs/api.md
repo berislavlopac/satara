@@ -29,10 +29,8 @@ The response has no `Content-Length`: its size is not known until the archive is
 it is sent in chunks. Every check is made before the first byte is sent. A failure after that,
 such as a file that cannot be read, can only cut the connection.
 
-Each file is compressed with deflate. The archive is written without the ZIP64 extensions,
-and without them the ZIP library writes a file of at most 2 GiB, measured both before and after
-compression. Compression makes a file that does not compress slightly larger, so the limit for
-a single file can be set to at most 2000 MiB.
+Each file is compressed with deflate. A file of about 2 GiB or more is written with the ZIP64
+extensions, which some older unzip tools cannot read.
 
 ### File names in the archive
 

@@ -48,8 +48,9 @@ class ZipArchiveWriter:
     """Writes an archive as a ZIP file, each file compressed with deflate.
 
     Every file is dated with the time, in UTC, the archive was written. Compression runs in a
-    worker thread, one chunk at a time, so it does not hold up other requests. Files are written
-    without ZIP64 extensions, and without them the ZIP library writes a file of at most 2 GiB.
+    worker thread, one chunk at a time, so it does not hold up other requests. A file of about
+    2 GiB or more is written with the ZIP64 extensions, which some older unzip tools cannot
+    read.
     """
 
     media_type = "application/zip"
@@ -64,6 +65,8 @@ class ZipArchiveWriter:
             for entry in archive.entries:
                 info = zipfile.ZipInfo(str(entry.name), date_time=written_at)
                 info.compress_type = zipfile.ZIP_DEFLATED
+                # Told the size up front, the ZIP library uses ZIP64 for a file that needs it.
+                info.file_size = entry.size
                 with zip_file.open(info, mode="w") as file:
                     while chunk := await entry.content.read(_CHUNK_SIZE):
                         await asyncio.to_thread(file.write, chunk)
