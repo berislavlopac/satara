@@ -55,7 +55,7 @@ class Entity(BaseModel):
     def __hash__(self) -> int:
         return hash((type(self).__name__, self.identity))
 
-    def set_event(self, event: DomainEvent):
+    def set_event(self, event: DomainEvent) -> None:
         self._events.append(event)
 
     def get_events(self) -> list[DomainEvent]:

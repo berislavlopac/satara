@@ -95,6 +95,7 @@ select = [  # see https://docs.astral.sh/ruff/rules/
     "RUF",      # various Ruff-specific linting rules
     "S",        # various insecure code, with bandit
     "ERA",      # eradicate: commented-out code
+    "ANN",      # missing type annotations
 ]
 ignore = [
     "TRY003",  # a raise site can add context the exception class cannot anticipate
@@ -109,6 +110,8 @@ ignore = [
     "PLR2004",  # allow magic values in comparisons
     "S311",     # allow random generator
 ]
+# Tests are not type-checked; the test doubles in `fakes.py` are, so they keep the rule.
+"tests/**/{test_*,conftest}.py" = ["ANN"]
 
 [tool.ruff.lint.isort]
 # see https://docs.astral.sh/ruff/settings/#lintisort
