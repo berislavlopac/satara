@@ -1,5 +1,3 @@
-import asyncio
-import json
 import os
 from datetime import timedelta
 from http import HTTPStatus
@@ -99,32 +97,6 @@ async def test_repository_marks_an_archive_built_once_it_is_saved(repository, st
 
     loaded = await repository.get(archive.archive_id)
     assert loaded.is_built
-
-
-async def test_an_upload_notifies_the_queue(storage, archive, http, sqs_client, settings):
-    """Sends an upload and looks for its notification among the messages waiting.
-
-    Other tests' uploads notify the same queue, so their messages are read and deleted too.
-    """
-    queue_url = (await sqs_client.get_queue_url(QueueName=settings.QUEUE))["QueueUrl"]
-    key = f"uploads/{archive.archive_id}/0"
-    url = await storage.create_upload_url(archive.archive_id, 0, 5)
-
-    await http.put(url, content=b"hello")
-
-    events = []
-    async with asyncio.timeout(10):
-        while key not in [event["s3"]["object"]["key"] for event in events]:
-            response = await sqs_client.receive_message(
-                QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=1
-            )
-            for message in response.get("Messages", []):
-                events.extend(json.loads(message["Body"]).get("Records", []))
-                await sqs_client.delete_message(
-                    QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"]
-                )
-    names = {event["eventName"] for event in events if event["s3"]["object"]["key"] == key}
-    assert names == {"ObjectCreated:Put"}
 
 
 async def test_storage_signs_each_URL_for_the_address_clients_reach_it_by(

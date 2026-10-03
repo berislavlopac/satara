@@ -361,7 +361,8 @@ succeeds.
   can tell whether the archive is complete leaves the status alone, since a later message can
   still succeed.
 - **Long builds.** While a build runs, the consumer keeps extending the message's visibility
-  timeout, so a slow build is neither started twice nor dead-lettered.
+  timeout, so a slow build is neither started twice nor dead-lettered. Replaced the same day
+  by a long visibility timeout; see "The consumer, kept simple".
 - **One consumer, one batch at a time.** Messages in a batch are grouped by archive and each
   archive is checked once; the next batch is fetched only when the current one is done, so a
   message for an archive being built arrives after the build and finds it done. Running more
@@ -408,6 +409,27 @@ was rejected. It works without setup only on Linux. On a Mac, Docker Desktop sup
 only from version 4.34, as an option that must be switched on and needs the user signed in
 to a Docker account, and not with Enhanced Container Isolation; other runtimes vary. Someone
 trying the stack on a Mac should not have to change their Docker settings first.
+
+### The consumer, kept simple
+
+The consumer is one loop over one queue, in the presentation layer beside the HTTP endpoints,
+run from the service's image with a different command. It receives up to ten messages,
+deletes any that are not uploads (such as the test event S3 sends when notifications are set
+up), groups the rest by archive and checks each archive once. A failed check leaves its
+messages for SQS to deliver again; on a message's last attempt, read from the queue's own
+redrive policy, the consumer records the build as failed. A stop signal ends the loop after
+the current batch.
+
+Extending the visibility timeout during a build was dropped as more machinery than this
+needs. The queue instead hides a received message for 30 minutes, enough to build an archive
+of the default 50 GiB; the cost is that after a crash the retry waits up to that long. A
+production consumer would extend the timeout while it works, and start with a shorter one.
+
+The consumer serves nothing, so the image's HTTP health check does not fit it. A daemon thread
+touches a heartbeat file every 15 seconds, and the consumer's own health check tests that the
+file is recent. Docker only reports an unhealthy container, so the consumer is also restarted
+if it exits. The consumer is the first part of the service that logs, using structured
+logging in the lean form of the project conventions.
 
 ## Build order for the direct flow
 
