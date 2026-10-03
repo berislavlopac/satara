@@ -12,6 +12,7 @@ from satara.application.base import (
     FileTooLargeError,
     InvalidArchiveNameError,
     TooManyFilesError,
+    TotalTooLargeError,
 )
 from satara.application.direct import ArchiveFilesCommand, ArchiveService, UploadedFile
 from satara.common.models import FrozenModel
@@ -95,7 +96,7 @@ async def handle_upload_rejected(request: Request, error: Exception) -> JSONResp
     A 422 is answered by the web framework's own validation handler, naming the form field at
     fault, so that every 422 the service sends has one form.
     """
-    if isinstance(error, TooManyFilesError | FileTooLargeError):
+    if isinstance(error, TooManyFilesError | FileTooLargeError | TotalTooLargeError):
         refusal = Refusal(detail=str(error))
         return JSONResponse(refusal.model_dump(), status_code=HTTPStatus.CONTENT_TOO_LARGE)
     field = "name" if isinstance(error, InvalidArchiveNameError) else "files"

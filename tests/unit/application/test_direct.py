@@ -6,15 +6,19 @@ from satara.application.base import (
     FileTooLargeError,
     InvalidArchiveNameError,
     InvalidFileNameError,
+    Limits,
     NoFilesError,
     TooManyFilesError,
+    TotalTooLargeError,
 )
 from satara.application.direct import ArchiveFilesCommand, ArchiveService, UploadedFile
 
 
 @pytest.fixture
 def service(recording_writer):
-    return ArchiveService(recording_writer, max_files=3, max_file_size=10)
+    return ArchiveService(
+        recording_writer, Limits(max_files=3, max_file_size=10, max_total_size=25)
+    )
 
 
 @pytest.fixture(scope="session")
@@ -38,7 +42,8 @@ def list_entry_names(archive):
 async def test_archive_files_turns_uploaded_files_into_a_named_archive(
     memory_content, recording_writer
 ):
-    service = ArchiveService(recording_writer, max_files=3, max_file_size=10)
+    limits = Limits(max_files=3, max_file_size=10, max_total_size=100)
+    service = ArchiveService(recording_writer, limits)
     command = ArchiveFilesCommand(
         files=(
             UploadedFile(name="notes.txt", size=5, content=memory_content(b"notes")),
@@ -96,6 +101,15 @@ def test_archive_files_accepts_a_file_as_large_as_the_limit(
     service.archive_files(command)
 
     assert list_entry_names(recording_writer.archive) == ["exact.txt"]
+
+
+def test_archive_files_refuses_files_larger_together_than_the_limit(
+    service, build_archive_files_command
+):
+    command = build_archive_files_command(*[(f"{i}.txt", b"x" * 9) for i in range(3)])
+
+    with pytest.raises(TotalTooLargeError):
+        service.archive_files(command)
 
 
 def test_archive_files_keeps_only_the_base_name_of_each_file(
