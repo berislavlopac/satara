@@ -23,11 +23,13 @@ from satara.application.deferred import (
     GetArchiveStatusCommand,
 )
 from satara.application.direct import ArchiveFilesCommand, ArchiveService, UploadedFile
+from satara.common.logging import get_logger
 from satara.common.models import FrozenModel
 from satara.domain import ArchiveID, ArchiveStatus
 
 router = APIRouter()
 deferred_router = APIRouter()
+log = get_logger(__name__)
 
 
 class APIModel(FrozenModel):
@@ -84,6 +86,12 @@ async def archive_files(
         archive_name=name or None,
     )
     result = service.archive_files(command)
+    log.debug(
+        "Archiving files directly.",
+        archive_id=str(result.archive_id),
+        files=len(command.files),
+        total_size=sum(file.size for file in command.files),
+    )
     return StreamingResponse(
         result.chunks,
         media_type=result.media_type,
@@ -106,6 +114,9 @@ async def handle_upload_rejected(request: Request, error: Exception) -> JSONResp
     A 422 is answered by the web framework's own validation handler, naming the form field at
     fault, so that every 422 the service sends has one form.
     """
+    # The reason can quote the client's file names, so only its kind is logged by default.
+    log.info("Upload refused.", refusal=type(error).__name__, path=request.url.path)
+    log.debug("Upload refused.", reason=str(error))
     if isinstance(error, TooManyFilesError | FileTooLargeError | TotalTooLargeError):
         refusal = Refusal(detail=str(error))
         return JSONResponse(refusal.model_dump(), status_code=HTTPStatus.CONTENT_TOO_LARGE)
@@ -118,6 +129,7 @@ async def handle_upload_rejected(request: Request, error: Exception) -> JSONResp
 
 async def handle_archive_not_found(request: Request, error: Exception) -> JSONResponse:
     """Answer a request for an archive that does not exist with 404."""
+    log.debug("No such archive.", reason=str(error))
     refusal = Refusal(detail=str(error))
     return JSONResponse(refusal.model_dump(), status_code=HTTPStatus.NOT_FOUND)
 

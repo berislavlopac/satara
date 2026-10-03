@@ -77,16 +77,25 @@ class Consumer:
             await self._check(archive_id, group)
 
     async def _check(self, archive_id: ArchiveID, messages: list[QueueMessage]) -> None:
-        log.info("Checking the archive's uploads.", archive_id=str(archive_id))
+        log.debug("Checking the archive's uploads.", archive_id=str(archive_id))
         try:
             await self._service.check_uploads(CheckUploadsCommand(archive_id=archive_id))
         except ArchiveNotFoundError:
             # No later attempt can find it either, so the messages are dropped.
             log.warning("No archive has the ID; skipping.", archive_id=str(archive_id))
         except Exception:
-            log.exception("Checking the archive failed.", archive_id=str(archive_id))
             if self._is_last_attempt(messages):
+                log.exception(
+                    "Checking the archive failed at its last attempt.",
+                    archive_id=str(archive_id),
+                )
                 await self._record_failure(archive_id)
+            else:
+                log.warning(
+                    "Checking the archive failed; it will be retried.",
+                    archive_id=str(archive_id),
+                    exc_info=True,
+                )
             return
         await self._delete(messages)
 
