@@ -48,8 +48,12 @@ class Settings(BaseSettings):
     S3 takes at most 5 GiB in one upload.
     """
 
-    DEFERRED_MAX_TOTAL_SIZE: Size = ByteSize(50 * GIB)
-    """The largest total size of the files in one deferred archive."""
+    DEFERRED_MAX_TOTAL_SIZE: Annotated[Size, Field(le=150 * GIB)] = ByteSize(50 * GIB)
+    """The largest total size of the files in one deferred archive; up to 150 GiB.
+
+    The built archive is stored in at most 10,000 parts of 16 MiB, about 156 GiB, and the
+    margin covers the archive's own overhead.
+    """
 
     BUCKET: str = "satara-archive-deferred-flow-storage"
     """The bucket that holds the deferred flow's archives."""

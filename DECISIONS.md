@@ -293,6 +293,8 @@ The bucket holds all the state, without a database. Each archive has its own pre
   in storage keys.
 - `archives/<id>/<name>.zip`, the finished archive.
 
+The layout was refined the same day; see "Storage layout and the S3 adapters".
+
 An archive only ever gains objects, so its status is worked out from what the bucket holds and
 nothing is updated in place.
 
@@ -369,6 +371,28 @@ succeeds.
   counts from when it entered the main queue. Nothing reads it automatically. In operation, an
   alarm on its message count would tell someone to look, and moving its messages back to the
   main queue is always safe, since at worst they check archives that are already built.
+
+### Storage layout and the S3 adapters
+
+Uploads and what the service writes live under separate prefixes:
+
+- `uploads/<id>/<n>`, the file at position `n`, uploaded by the client.
+- `archives/<id>/manifest.json`, written once when the archive is created.
+- `archives/<id>/archive`, the built archive.
+
+The bucket notifies the queue only of objects under `uploads/`, so the service's own writes
+never reach the consumer. The built archive has a fixed key, so finding whether it exists
+needs neither its name nor its format; a download URL names the file through S3's override
+of the `Content-Disposition` header. The manifest is the S3 adapter's own representation of an
+archive; the domain knows only the repository port.
+
+The built archive is stored with a multipart upload in parts of 16 MiB. S3 takes at most
+10,000 parts, about 156 GiB, so `DEFERRED_MAX_TOTAL_SIZE` is capped at 150 GiB, leaving room
+for the archive's own overhead. The consumer holds one part in memory at a time.
+
+The S3 client is aiobotocore, which reads the endpoint, credentials and region from the
+standard AWS environment variables. It reads the region from `AWS_DEFAULT_REGION`, not
+`AWS_REGION`, and otherwise falls back to the developer's own AWS configuration.
 
 ## Build order for the direct flow
 
