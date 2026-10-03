@@ -1,4 +1,4 @@
-# The deferred flow's storage, run locally: an S3 and SQS emulator, and a one-off step that
+# The deferred flow, run locally: the API, an S3 and SQS emulator, and a one-off step that
 # creates the bucket and the queues. The credentials are the emulator's placeholders.
 
 x-aws: &aws
@@ -24,3 +24,16 @@ services:
     volumes:
       - ./compose/storage-setup.sh:/storage-setup.sh:ro
     entrypoint: ["sh", "/storage-setup.sh"]
+
+  api:
+    build: .
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *aws
+      SATARA_DEFERRED_ENABLED: "true"
+      # Presigned URLs must name the address a client on the host reaches storage by.
+      SATARA_STORAGE_PUBLIC_URL: http://localhost:4566
