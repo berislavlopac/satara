@@ -55,24 +55,25 @@ def test_archive_files_streams_a_file_of_the_largest_allowed_size_intact(client)
     assert read_back(response.content) == [("large.bin", content)]
 
 
-def test_archive_files_refuses_more_files_than_the_limit(client):
-    files = [("files", (f"{i}.txt", b"x")) for i in range(4)]
-
+@pytest.mark.parametrize(
+    ("files", "detail"),
+    [
+        (
+            [("files", (f"{i}.txt", b"x")) for i in range(4)],
+            "4 files were sent; at most 3 are allowed",
+        ),
+        (
+            [("files", ("large.bin", b"x" * (MIB + 1)))],
+            f"'large.bin' is {MIB + 1} bytes; at most {MIB} are allowed",
+        ),
+    ],
+    ids=["more files than the limit", "a file larger than the limit"],
+)
+def test_archive_files_refuses_a_broken_limit_with_its_reason(client, files, detail):
     response = client.post("/archive-files", files=files)
 
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
-    assert response.json() == {"detail": "4 files were sent; at most 3 are allowed"}
-
-
-def test_archive_files_refuses_a_file_larger_than_the_limit(client):
-    files = [("files", ("large.bin", b"x" * (MIB + 1)))]
-
-    response = client.post("/archive-files", files=files)
-
-    assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
-    assert response.json() == {
-        "detail": f"'large.bin' is {MIB + 1} bytes; at most {MIB} are allowed"
-    }
+    assert response.json() == {"detail": detail}
 
 
 def test_archive_files_refuses_a_request_body_declared_larger_than_the_limit(client):
@@ -109,20 +110,27 @@ def test_archive_files_refuses_a_request_body_that_grows_past_the_limit(client):
     assert response.json() == {"detail": "Content Too Large"}
 
 
-def test_archive_files_refuses_a_file_without_a_usable_name(client):
-    files = [("files", ("..", b"x"))]
-
-    response = client.post("/archive-files", files=files)
+@pytest.mark.parametrize(
+    ("files", "form", "field", "message"),
+    [
+        ([("files", ("..", b"x"))], {}, "files", "'..' is not a usable file name"),
+        (
+            [("files", ("a.txt", b"a"))],
+            {"name": "../report"},
+            "name",
+            "'../report' is not a usable archive name",
+        ),
+    ],
+    ids=["a file without a usable name", "an unusable archive name"],
+)
+def test_archive_files_refuses_an_unusable_name_naming_its_field(
+    client, files, form, field, message
+):
+    response = client.post("/archive-files", files=files, data=form)
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
     assert response.json() == {
-        "detail": [
-            {
-                "type": "value_error",
-                "loc": ["body", "files"],
-                "msg": "'..' is not a usable file name",
-            }
-        ]
+        "detail": [{"type": "value_error", "loc": ["body", field], "msg": message}]
     }
 
 
@@ -132,23 +140,6 @@ def test_archive_files_quotes_a_refused_file_name_as_it_was_sent(client):
     response = client.post("/archive-files", files=files)
 
     assert response.json()["detail"][0]["msg"] == "'.' is not a usable file name"
-
-
-def test_archive_files_refuses_an_unusable_archive_name(client):
-    files = [("files", ("a.txt", b"a"))]
-
-    response = client.post("/archive-files", files=files, data={"name": "../report"})
-
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
-    assert response.json() == {
-        "detail": [
-            {
-                "type": "value_error",
-                "loc": ["body", "name"],
-                "msg": "'../report' is not a usable archive name",
-            }
-        ]
-    }
 
 
 def test_archive_files_refuses_a_request_without_files(client):
