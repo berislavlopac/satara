@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     """Configuration root for the service.
 
     Values come from `SATARA_`-prefixed environment variables or a `.env` file, falling back
-    to the defaults below. Other variables are ignored.
+    to the defaults below. Other variables are ignored. A secret is typed `SecretStr`, so that
+    dumps and logs mask it; debug mode logs the settings in full.
     """
 
     model_config = SettingsConfigDict(
