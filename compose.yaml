@@ -19,15 +19,17 @@ services:
     # The emulator runs the scripts in its ready directory once it accepts requests.
     volumes:
       - ./scripts/storage-setup.sh:/etc/localstack/init/ready.d/storage-setup.sh:ro
-    # Healthy once the setup has run and succeeded. The emulator reports itself ready even when
-    # a script fails, so the script also leaves a marker when every step has succeeded.
+    # Healthy once the setup has run without failing. The emulator reports itself ready even
+    # when a script fails, but counts the failures, so the check exits with that count.
     healthcheck:
       test:
-        - CMD-SHELL
+        - CMD
+        - python
+        - -c
         - >-
-          test -f /tmp/satara-storage-ready &&
-          python -c "import urllib.request as request;
-          request.urlopen('http://localhost:4566/_ministack/ready')"
+          import json, urllib.request as request;
+          ready = request.urlopen("http://localhost:4566/_ministack/ready");
+          raise SystemExit(json.load(ready)["failed"])
       interval: 2s
       timeout: 3s
       retries: 30

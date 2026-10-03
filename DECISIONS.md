@@ -493,12 +493,12 @@ MiniStack runs the scripts in its ready directory once it accepts requests, as L
 does, and bundles the AWS CLI, so the setup script now runs inside the emulator. That drops a
 service and an image, which also shortens a first run.
 
-Two things had to change. The bundled CLI is version 1, which ignores `AWS_ENDPOINT_URL` for
-SQS and sent those calls to AWS itself, so the script passes the endpoint to every call when it
-is set. And the emulator reports itself ready even when a ready script fails, so the script
-leaves a marker once every step has succeeded, and storage counts as healthy only with both.
-The API and the consumer wait for storage to be healthy, so a failed setup stops
-`docker compose up --wait` with an error rather than leaving a stack without its queues.
+Two things had to change. The bundled CLI is version 1, which ignores `AWS_ENDPOINT_URL` for SQS
+and sent those calls to AWS itself, so the script passes the endpoint to every call when it is
+set. And the emulator reports itself ready even when a ready script fails, though it counts the
+failures, so storage counts as healthy only when the count is zero. The API and the consumer
+wait for storage to be healthy, so a failed setup stops `docker compose up --wait` with an error
+rather than leaving a stack without its queues.
 
 The script lives in `scripts/` beside the others. `compose.yaml` stays at the root, where
 `docker compose` finds it without options.
