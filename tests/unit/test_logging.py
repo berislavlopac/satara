@@ -3,8 +3,11 @@ import logging
 from http import HTTPStatus
 
 import pytest
+from pydantic import SecretStr
 
 from satara.common.logging import configure_logging, get_logger, silence_access_log
+from satara.config import Settings
+from satara.wiring import create_app
 
 
 def test_web_server_logs_are_rendered_as_JSON(caplog):
@@ -84,3 +87,20 @@ def test_logging_logs_everything_at_debug_level_in_debug_mode(configure_logging_
     }
 
     assert levels == {logging.DEBUG}
+
+
+class SettingsWithSecret(Settings):
+    API_TOKEN: SecretStr = SecretStr("the secret value")
+
+
+@pytest.mark.usefixtures("configure_logging_for")
+def test_debug_mode_logs_the_settings_with_secrets_masked(caplog):
+    """Masks a setting typed as a secret in the settings that debug mode logs in full."""
+    settings = SettingsWithSecret(DEBUG=True, _env_file=None)
+
+    with caplog.at_level(logging.DEBUG, logger="satara.wiring"):
+        create_app(settings)
+
+    [line] = [r.getMessage() for r in caplog.records if "Settings in full." in r.getMessage()]
+    assert json.loads(line)["API_TOKEN"] == "**********"
+    assert "the secret value" not in line
