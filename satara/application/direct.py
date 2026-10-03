@@ -1,51 +1,20 @@
-"""Use cases of the service."""
+"""The direct flow: files sent in one request, packed into an archive returned at once."""
 
 from collections.abc import AsyncIterator
-from pathlib import PureWindowsPath
 
-from pydantic import ConfigDict, SkipValidation, ValidationError
+from pydantic import ConfigDict, SkipValidation
 
-from satara.common.models import FrozenModel
-from satara.domain import (
-    Archive,
-    ArchiveID,
-    ArchiveName,
-    ArchiveWriter,
-    Content,
-    EntryName,
+from satara.application.base import (
+    Command,
+    FileTooLargeError,
+    NoFilesError,
+    Result,
+    TooManyFilesError,
+    to_archive_name,
+    to_entry_name,
 )
-
-
-class Command(FrozenModel):
-    """Base class for the input to a use case."""
-
-
-class Result(FrozenModel):
-    """Base class for the output of a use case."""
-
-
-class UploadRejectedError(Exception):
-    """Base class for the reasons a set of uploaded files cannot be archived."""
-
-
-class NoFilesError(UploadRejectedError):
-    """No files were sent."""
-
-
-class TooManyFilesError(UploadRejectedError):
-    """More files were sent than the limit allows."""
-
-
-class FileTooLargeError(UploadRejectedError):
-    """A file is larger than the limit allows."""
-
-
-class InvalidFileNameError(UploadRejectedError):
-    """A file's name is not a usable file name once its directories are dropped."""
-
-
-class InvalidArchiveNameError(UploadRejectedError):
-    """The name requested for the archive breaks the rules for archive names."""
+from satara.common.models import FrozenModel
+from satara.domain import Archive, ArchiveID, ArchiveWriter, Content
 
 
 class UploadedFile(FrozenModel):
@@ -129,7 +98,7 @@ class ArchiveService:
         archive = (
             Archive()
             if command.archive_name is None
-            else Archive(name=_to_archive_name(command.archive_name))
+            else Archive(name=to_archive_name(command.archive_name))
         )
         for file in files:
             if file.size > self._max_file_size:
@@ -137,36 +106,10 @@ class ArchiveService:
                     f"{file.name!r} is {file.size} bytes; "
                     f"at most {self._max_file_size} are allowed"
                 )
-            archive.add(_to_entry_name(file.name), file.size, file.content)
+            archive.add(to_entry_name(file.name), file.size, file.content)
         return ArchiveFilesResult(
             archive_id=archive.archive_id,
             file_name=f"{archive.name}{self._writer.suffix}",
             media_type=self._writer.media_type,
             chunks=self._writer.write(archive),
         )
-
-
-def _to_entry_name(sent_name: str) -> EntryName:
-    """Return the name a file takes in the archive: its base name.
-
-    Raises:
-        InvalidFileNameError: The base name is not a usable file name.
-    """
-    # `PureWindowsPath` treats both `/` and `\` as separators, on any platform.
-    base_name = PureWindowsPath(sent_name).name
-    try:
-        return EntryName.model_validate(base_name)
-    except ValidationError:
-        raise InvalidFileNameError(f"{sent_name!r} is not a usable file name") from None
-
-
-def _to_archive_name(name: str) -> ArchiveName:
-    """Return the archive name requested.
-
-    Raises:
-        InvalidArchiveNameError: The name breaks the rules for archive names.
-    """
-    try:
-        return ArchiveName.model_validate(name)
-    except ValidationError:
-        raise InvalidArchiveNameError(f"{name!r} is not a usable archive name") from None

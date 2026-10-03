@@ -3,7 +3,8 @@
 from fastapi import FastAPI
 from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 
-from satara.application import ArchiveService, UploadRejectedError
+from satara.application.base import UploadRejectedError
+from satara.application.direct import ArchiveService
 from satara.config import Settings
 from satara.infrastructure import ZipArchiveWriter
 from satara.presentation import handle_upload_rejected, router
