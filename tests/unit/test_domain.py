@@ -161,12 +161,13 @@ def test_archive_renames_a_file_only_when_its_name_is_taken(memory_content, adde
     assert renamed == taken
 
 
-def test_archive_ID_accepts_a_version_7_UUID_or_its_text():
+@pytest.mark.parametrize("as_text", [False, True], ids=["a UUID", "its text"])
+def test_archive_ID_accepts_a_version_7_UUID_or_its_text(as_text):
     value = uuid7()
 
-    accepted = [ArchiveID.model_validate(value).id, ArchiveID.model_validate(str(value)).id]
+    archive_id = ArchiveID.model_validate(str(value) if as_text else value)
 
-    assert accepted == [value, value]
+    assert archive_id.id == value
 
 
 @pytest.mark.parametrize(
