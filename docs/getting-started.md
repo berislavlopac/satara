@@ -38,7 +38,7 @@ The deferred flow needs storage and a queue consumer as well. Docker Compose run
 just up
 ```
 
-This builds the image and starts the service, with the deferred flow switched on, the consumer, the emulator, and a step that creates the bucket and the queues, then waits until all are healthy. The service is at <http://localhost:8000> and storage at <http://localhost:4566>. `just down` stops it all.
+This builds the image and starts the service, with the deferred flow switched on, the consumer, and the emulator, which creates the bucket and the queues as it starts, then waits until all are healthy. The service is at <http://localhost:8000> and storage at <http://localhost:4566>. `just down` stops it all.
 
 ## Try it
 

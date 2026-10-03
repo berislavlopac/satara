@@ -38,7 +38,7 @@ The deferred flow needs an S3 bucket and two SQS queues:
 - **The upload queue** hides a received message for a good part of an hour (30 minutes in the local stack), and moves a message to the dead-letter queue after three failed attempts. A build may take longer than that: the consumer receives nothing more until it has finished its batch, so the message is not delivered again meanwhile. On AWS the queue also needs a policy that lets the bucket send to it.
 - **The dead-letter queue** keeps messages for 14 days, the most SQS allows. Nothing reads it. An alarm on its size would tell someone to look, and moving its messages back to the upload queue is always safe, since at worst they check archives that are already built.
 
-The local stack's setup step, `compose/storage-setup.sh`, creates all of these with the AWS command-line tool, and is a starting point for doing the same elsewhere.
+`scripts/storage-setup.sh` creates all of these with the AWS command-line tool. The local stack's emulator runs it when it starts; on AWS, the same script run once, with credentials, sets the resources up, and only the queue's policy remains.
 
 ## In production
 

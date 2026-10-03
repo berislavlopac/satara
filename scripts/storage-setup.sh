@@ -1,10 +1,18 @@
 #!/bin/sh
 # Creates the bucket, the upload queue and its dead-letter queue, and has the bucket notify
-# the queue of every upload. Safe to run again. On AWS the queue would also need a policy
-# that lets the bucket send to it.
+# the queue of every upload. Safe to run again. The local stack's emulator runs it when it
+# starts; on AWS, run it once, and give the queue a policy that lets the bucket send to it.
 set -eu
 
-until aws s3api list-buckets >/dev/null 2>&1; do sleep 1; done
+# Left once every step has succeeded, for the emulator's health check to find.
+ready_marker=/tmp/satara-storage-ready
+rm -f "$ready_marker"
+
+# The AWS CLI bundled with the emulator ignores AWS_ENDPOINT_URL for SQS, so it is passed to
+# every call, when it is set.
+aws() {
+    command aws ${AWS_ENDPOINT_URL:+--endpoint-url "$AWS_ENDPOINT_URL"} "$@"
+}
 
 aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1 \
     || aws s3api create-bucket --bucket "$BUCKET" >/dev/null
@@ -59,4 +67,5 @@ JSON
 aws s3api put-bucket-notification-configuration --bucket "$BUCKET" \
     --notification-configuration file:///tmp/notification.json
 
+touch "$ready_marker"
 echo "Storage ready: bucket $BUCKET, queue $QUEUE"

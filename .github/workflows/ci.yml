@@ -104,8 +104,9 @@ jobs:
       - name: Install the dependencies
         run: uv sync --locked --all-groups
 
-      # The same stack as on a developer's machine: the emulator, its setup step, the API and
-      # the consumer. `--wait` returns once each is healthy and the setup step has finished.
+      # The same stack as on a developer's machine: the emulator, which sets up the bucket
+      # and the queues as it starts, the API and the consumer. `--wait` returns once all are
+      # healthy.
       - name: Start the Compose stack
         run: docker compose up -d --build --wait
 
