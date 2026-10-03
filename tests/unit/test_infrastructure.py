@@ -122,3 +122,20 @@ async def test_zip_archive_writer_keeps_any_name_an_entry_may_have(build_archive
     data = b"".join([chunk async for chunk in ZipArchiveWriter().write(archive)])
 
     assert read_back(data) == [(name, b"")]
+
+
+async def test_zip_archive_writer_writes_a_file_too_large_for_the_basic_format(
+    build_archive, monkeypatch
+):
+    """Writes a file larger than the ZIP library allows without the ZIP64 extensions.
+
+    Writing 2 GiB would make the test slow, so the library's limit is lowered instead, to a size
+    a small file passes.
+    """
+    monkeypatch.setattr(zipfile, "ZIP64_LIMIT", 1024)
+    data = os.urandom(4096)
+    archive = build_archive([("large.bin", data)])
+
+    written = b"".join([chunk async for chunk in ZipArchiveWriter().write(archive)])
+
+    assert read_back(written) == [("large.bin", data)]

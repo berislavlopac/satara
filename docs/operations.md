@@ -13,8 +13,7 @@ directory. Other variables are ignored.
 
 A size may carry a unit: `50MiB` is 50 * 1024 * 1024 bytes, `50MB` is 50 * 1000 * 1000, and a
 bare number is in bytes. A limit of zero is refused when the service starts, and so are more
-than 1000 files, the most the form parser accepts, or a file size over 2000 MiB, the most the
-ZIP library writes without ZIP64 (see [the response](api.md#the-response)).
+than 1000 files, the most the form parser accepts.
 
 ```shell
 docker run --rm -p 8000:8000 -e SATARA_MAX_FILES=20 satara
