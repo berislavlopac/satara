@@ -1,5 +1,5 @@
-# The deferred flow, run locally: the API, the queue consumer, an S3 and SQS emulator, and a
-# one-off step that creates the bucket and the queues. The credentials are the emulator's
+# The deferred flow, run locally: the API, the queue consumer, and an S3 and SQS emulator that
+# creates the bucket and the queues when it starts. The credentials are the emulator's
 # placeholders.
 
 x-aws: &aws
@@ -13,24 +13,30 @@ services:
     image: ministackorg/ministack:1.5.21
     ports:
       - "4566:4566"
-
-  storage-setup:
-    image: amazon/aws-cli:2.37.9
-    depends_on:
-      - storage
     environment:
-      <<: *aws
       BUCKET: satara-archive-deferred-flow-storage
       QUEUE: satara-uploads
+    # The emulator runs the scripts in its ready directory once it accepts requests.
     volumes:
-      - ./compose/storage-setup.sh:/storage-setup.sh:ro
-    entrypoint: ["sh", "/storage-setup.sh"]
+      - ./scripts/storage-setup.sh:/etc/localstack/init/ready.d/storage-setup.sh:ro
+    # Healthy once the setup has run and succeeded. The emulator reports itself ready even when
+    # a script fails, so the script also leaves a marker when every step has succeeded.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          test -f /tmp/satara-storage-ready &&
+          python -c "import urllib.request as request;
+          request.urlopen('http://localhost:4566/_ministack/ready')"
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   api:
     build: .
     depends_on:
-      storage-setup:
-        condition: service_completed_successfully
+      storage:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
@@ -43,8 +49,8 @@ services:
     build: .
     command: ["python", "scripts/consumer.py"]
     depends_on:
-      storage-setup:
-        condition: service_completed_successfully
+      storage:
+        condition: service_healthy
     environment:
       <<: *aws
     restart: unless-stopped

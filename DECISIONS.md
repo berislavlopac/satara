@@ -486,6 +486,23 @@ which may come from a `.env` file that the first reading cannot see. Every refus
 shape in both modes; only an unhandled error's response differs. Health checks stay out of the
 access log even in debug mode, as they add nothing when debugging.
 
+### The emulator sets up its own storage
+
+The local stack created the bucket and the queues with a one-off service on the AWS CLI image.
+MiniStack runs the scripts in its ready directory once it accepts requests, as LocalStack
+does, and bundles the AWS CLI, so the setup script now runs inside the emulator. That drops a
+service and an image, which also shortens a first run.
+
+Two things had to change. The bundled CLI is version 1, which ignores `AWS_ENDPOINT_URL` for
+SQS and sent those calls to AWS itself, so the script passes the endpoint to every call when it
+is set. And the emulator reports itself ready even when a ready script fails, so the script
+leaves a marker once every step has succeeded, and storage counts as healthy only with both.
+The API and the consumer wait for storage to be healthy, so a failed setup stops
+`docker compose up --wait` with an error rather than leaving a stack without its queues.
+
+The script lives in `scripts/` beside the others. `compose.yaml` stays at the root, where
+`docker compose` finds it without options.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
