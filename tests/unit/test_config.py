@@ -78,8 +78,13 @@ def test_settings_refuse_a_URL_lifetime_of_zero_or_over_seven_days(monkeypatch, 
         Settings(_env_file=None)
 
 
-def test_settings_refuse_a_deferred_file_size_over_the_largest_single_upload(monkeypatch):
-    monkeypatch.setenv("SATARA_DEFERRED_MAX_FILE_SIZE", str(5 * GIB + 1))
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [("DEFERRED_MAX_FILE_SIZE", 5 * GIB + 1), ("DEFERRED_MAX_TOTAL_SIZE", 150 * GIB + 1)],
+    ids=["a file over the largest single upload", "a total over what storage takes"],
+)
+def test_settings_refuse_deferred_sizes_storage_cannot_take(monkeypatch, name, value):
+    monkeypatch.setenv(f"SATARA_{name}", str(value))
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
