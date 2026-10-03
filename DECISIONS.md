@@ -211,6 +211,18 @@ service. With a target environment, the next steps would be:
   container on ECS Fargate behind a load balancer, with the infrastructure described in code
   using CDK or Terraform.
 
+## 2026-10-03
+
+### File names hold no control characters
+
+A file name holding a control character is refused. The ZIP library cuts a name off at a NUL
+byte, so `a.txt` and `a.txt` followed by a NUL and more text were two names to the service but
+one in the archive, and one file was lost on extraction. Refusing the whole category, rather
+than NUL alone, also keeps line breaks and terminal escapes out of names.
+
+A property test writes names drawn from all of Unicode and checks that each comes back from
+the archive unchanged, so any other character the format alters would show up there.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

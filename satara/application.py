@@ -41,7 +41,7 @@ class FileTooLargeError(UploadRejectedError):
 
 
 class InvalidFileNameError(UploadRejectedError):
-    """A file's name leaves nothing usable once its directories are dropped."""
+    """A file's name is not a usable file name once its directories are dropped."""
 
 
 class InvalidArchiveNameError(UploadRejectedError):
@@ -134,14 +134,12 @@ class ArchiveService:
             else Archive(name=_to_archive_name(command.archive_name))
         )
         for file in files:
-            # `PureWindowsPath` treats both `/` and `\` as separators, on any platform.
-            base_name = PureWindowsPath(file.name).name
             if file.size > self._max_file_size:
                 raise FileTooLargeError(
-                    f"{base_name!r} is {file.size} bytes; "
+                    f"{file.name!r} is {file.size} bytes; "
                     f"at most {self._max_file_size} are allowed"
                 )
-            archive.add(_to_entry_name(base_name), file.content)
+            archive.add(_to_entry_name(file.name), file.content)
         return ArchiveFilesResult(
             archive_id=archive.archive_id,
             file_name=f"{archive.name}{self._writer.suffix}",
@@ -150,16 +148,18 @@ class ArchiveService:
         )
 
 
-def _to_entry_name(base_name: str) -> EntryName:
-    """Return the name a file takes in the archive.
+def _to_entry_name(sent_name: str) -> EntryName:
+    """Return the name a file takes in the archive: its base name.
 
     Raises:
         InvalidFileNameError: The base name is not a usable file name.
     """
+    # `PureWindowsPath` treats both `/` and `\` as separators, on any platform.
+    base_name = PureWindowsPath(sent_name).name
     try:
         return EntryName.model_validate(base_name)
     except ValidationError:
-        raise InvalidFileNameError(f"{base_name!r} is not a usable file name") from None
+        raise InvalidFileNameError(f"{sent_name!r} is not a usable file name") from None
 
 
 def _to_archive_name(name: str) -> ArchiveName:

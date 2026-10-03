@@ -5,6 +5,7 @@ This module holds the rules for those names. The format an archive is written in
 of the model.
 """
 
+import unicodedata
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import PureWindowsPath
@@ -41,13 +42,16 @@ def _check_single_name(value: str) -> str:
     # `PureWindowsPath` treats both `/` and `\` as separators, and a leading `C:` as a drive.
     if value in {"", ".", ".."} or PureWindowsPath(value).name != value:
         raise ValueError("Input should be a single file name")
+    if any(unicodedata.category(char) == "Cc" for char in value):
+        raise ValueError("Input should hold no control characters")
     return value
 
 
 class EntryName(ValueObject):
     """The name a file has inside an archive.
 
-    It is a single, non-empty file name, such as `report.pdf`, with no path or drive in it.
+    It is a single, non-empty file name, such as `report.pdf`, with no path, drive or control
+    characters in it.
     """
 
     value: Annotated[str, AfterValidator(_check_single_name)]

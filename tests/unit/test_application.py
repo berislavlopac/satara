@@ -124,8 +124,8 @@ def test_archive_files_renames_files_whose_base_names_collide(
 
 @pytest.mark.parametrize(
     "name",
-    ["", "..", "dir/..", "dir\\.."],
-    ids=["empty", "parent directory", "slash", "backslash"],
+    ["", "..", "dir/..", "dir\\..", "a\x00.txt"],
+    ids=["empty", "parent directory", "slash", "backslash", "control character"],
 )
 def test_archive_files_refuses_a_file_without_a_usable_name(
     service, build_archive_files_command, name
