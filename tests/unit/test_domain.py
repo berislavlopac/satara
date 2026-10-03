@@ -1,10 +1,18 @@
 from datetime import UTC, datetime
+from uuid import uuid4, uuid7
 
 import pytest
 from hypothesis import given, strategies as st
 from pydantic import ValidationError
 
-from satara.domain import AllFilesReceived, Archive, ArchiveName, ArchiveStatus, EntryName
+from satara.domain import (
+    AllFilesReceived,
+    Archive,
+    ArchiveID,
+    ArchiveName,
+    ArchiveStatus,
+    EntryName,
+)
 
 # A small pool makes collisions, and collisions with generated names, common. The pool spells
 # some names in two cases or two Unicode forms; escapes show the forms apart.
@@ -151,6 +159,24 @@ def test_archive_renames_a_file_only_when_its_name_is_taken(memory_content, adde
         renamed.append(entry.name != entry_name)
 
     assert renamed == taken
+
+
+def test_archive_ID_accepts_a_version_7_UUID_or_its_text():
+    value = uuid7()
+
+    accepted = [ArchiveID.model_validate(value).id, ArchiveID.model_validate(str(value)).id]
+
+    assert accepted == [value, value]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [{"id": 7}, "not a UUID", str(uuid4())],
+    ids=["neither a UUID nor text", "text that is no UUID", "a version 4 UUID"],
+)
+def test_archive_ID_refuses_anything_but_a_version_7_UUID(value):
+    with pytest.raises(ValidationError):
+        ArchiveID.model_validate(value)
 
 
 def test_each_archive_gets_a_new_identity():
