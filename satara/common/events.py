@@ -21,7 +21,7 @@ class DomainEvent(BaseModel):
 
 
 class DomainEventHandler[T: DomainEvent](Protocol):
-    async def handle(self, event: T): ...
+    async def handle(self, event: T) -> None: ...
 
 
 class EventBroker(Protocol):
