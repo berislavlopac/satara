@@ -3,9 +3,18 @@
 Tests receive these through fixtures and never import them.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 
-from satara.domain import Archive, ArchiveWriter, Content
+from satara.common.events import DomainEvent, DomainEventHandler, EventBroker
+from satara.domain import (
+    Archive,
+    ArchiveID,
+    ArchiveNotFoundError,
+    ArchiveRepository,
+    ArchiveWriter,
+    Content,
+    FileStorage,
+)
 
 
 class MemoryContent(Content):
@@ -42,3 +51,70 @@ class RecordingWriter(ArchiveWriter):
         for entry in archive.entries:
             while chunk := await entry.content.read():
                 yield chunk
+
+
+class MemoryArchiveRepository(ArchiveRepository):
+    """Keeps archives in memory, handing back the very objects it was given."""
+
+    def __init__(self) -> None:
+        self.archives: dict[ArchiveID, Archive] = {}
+
+    async def add(self, archive: Archive) -> None:
+        self.archives[archive.archive_id] = archive
+
+    async def get(self, archive_id: ArchiveID) -> Archive:
+        try:
+            return self.archives[archive_id]
+        except KeyError:
+            raise ArchiveNotFoundError(str(archive_id)) from None
+
+
+class StoredContent(Content):
+    """A file's content in `MemoryFileStorage`, looked up only when first read."""
+
+    def __init__(self, storage: MemoryFileStorage, key: tuple[ArchiveID, int]) -> None:
+        self._storage = storage
+        self._key = key
+        self._content: MemoryContent | None = None
+
+    async def read(self, size: int = -1) -> bytes:
+        if self._content is None:
+            self._content = MemoryContent(self._storage.files[self._key])
+        return await self._content.read(size)
+
+
+class MemoryFileStorage(FileStorage):
+    """Holds files and archives in memory, and hands out URLs that say what they are for."""
+
+    def __init__(self) -> None:
+        self.files: dict[tuple[ArchiveID, int], bytes] = {}
+        self.archives: dict[ArchiveID, tuple[str, bytes]] = {}
+
+    async def create_upload_url(self, archive_id: ArchiveID, position: int, size: int) -> str:
+        return f"upload://{archive_id}/{position}?size={size}"
+
+    def open_file(self, archive_id: ArchiveID, position: int) -> Content:
+        return StoredContent(self, (archive_id, position))
+
+    async def save_archive(
+        self, archive_id: ArchiveID, media_type: str, chunks: AsyncIterator[bytes]
+    ) -> None:
+        self.archives[archive_id] = (media_type, b"".join([chunk async for chunk in chunks]))
+
+    async def create_download_url(self, archive_id: ArchiveID, file_name: str) -> str:
+        return f"download://{archive_id}/{file_name}"
+
+
+class RecordingBroker(EventBroker):
+    """Records the events published, and delivers them to no one."""
+
+    def __init__(self) -> None:
+        self.published: list[DomainEvent] = []
+
+    def subscribe[T: DomainEvent](
+        self, event_type: type[T], handler: DomainEventHandler[T]
+    ) -> None:
+        pass
+
+    async def publish(self, events: Iterable[DomainEvent]) -> None:
+        self.published.extend(events)
