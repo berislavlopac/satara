@@ -334,6 +334,42 @@ against 100 files, 50 MiB and 200 MiB. The file count has no ceiling, since no f
 stands in the way. A file is capped at 5 GiB, the most S3 takes in one upload; larger files
 would need S3's multipart upload driven by the client, which this proof of concept leaves out.
 
+### Upload notifications: the queue, retries and failure
+
+S3 notifies a queue of each upload, and a consumer reads it. A webhook, where storage calls an
+endpoint of the API, was considered: it is how many S3-compatible stores notify (RustFS,
+Versity Gateway, Ceph, Tigris), and it would keep the flow to one service. It was rejected for
+two reasons. A webhook must be answered within seconds, so the build would run in the
+background after a `202`, and a restart during a build would lose it with nothing left to
+trigger it again; the queue keeps a message until the consumer deletes it after the build, so
+a crash only means the message is delivered again. And the endpoint would be one more thing
+storage can reach and that needs securing. AWS S3 cannot call a webhook directly in any case.
+For a store that only sends webhooks, the endpoint would be a second adapter in front of the
+same `check_uploads`, ideally putting each event on a queue rather than building directly.
+
+Each message only prompts a check of one archive, so messages for the same archive are
+interchangeable. Whichever check first finds every file present triggers the build, and every
+message checked after the archive exists is deleted without further work. A failed message is
+delivered again after its visibility timeout, and after three attempts moves to a dead-letter
+queue. Losing a message whose archive was incomplete costs nothing while a later message for it
+succeeds.
+
+- **Failure.** When the build of a complete archive fails on its last attempt, the consumer
+  writes `archives/<id>/failed`, and the status becomes `failed`. A check that fails before it
+  can tell whether the archive is complete leaves the status alone, since a later message can
+  still succeed.
+- **Long builds.** While a build runs, the consumer keeps extending the message's visibility
+  timeout, so a slow build is neither started twice nor dead-lettered.
+- **One consumer, one batch at a time.** Messages in a batch are grouped by archive and each
+  archive is checked once; the next batch is fetched only when the current one is done, so a
+  message for an archive being built arrives after the build and finds it done. Running more
+  consumers would need a lock, such as a marker written with S3's conditional write, which
+  fails if the object already exists.
+- **The dead-letter queue** keeps messages for 14 days, the most SQS allows; a message's age
+  counts from when it entered the main queue. Nothing reads it automatically. In operation, an
+  alarm on its message count would tell someone to look, and moving its messages back to the
+  main queue is always safe, since at worst they check archives that are already built.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
