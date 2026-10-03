@@ -1,12 +1,15 @@
 import asyncio
 import json
 import os
+from datetime import timedelta
 from http import HTTPStatus
+from urllib.parse import urlsplit
 
 import pytest
+from aiobotocore.session import get_session
 
 from satara.domain import Archive, ArchiveID, ArchiveNotFoundError, EntryName
-from satara.infrastructure.s3 import PART_SIZE
+from satara.infrastructure.s3 import PART_SIZE, S3FileStorage
 
 pytestmark = pytest.mark.integration
 
@@ -122,3 +125,22 @@ async def test_an_upload_notifies_the_queue(storage, archive, http, sqs_client, 
                 )
     names = {event["eventName"] for event in events if event["s3"]["object"]["key"] == key}
     assert names == {"ObjectCreated:Put"}
+
+
+async def test_storage_signs_each_URL_for_the_address_clients_reach_it_by(
+    s3_client, client_options, settings, repository, archive, http
+):
+    """Signs with a client for `127.0.0.1`, while the storage itself talks to `localhost`."""
+    options = client_options | {"endpoint_url": "http://127.0.0.1:4566"}
+    async with get_session().create_client("s3", **options) as signing_client:
+        storage = S3FileStorage(
+            s3_client, settings.BUCKET, timedelta(minutes=5), signing_client=signing_client
+        )
+
+        url = await storage.create_upload_url(archive.archive_id, 0, 5)
+
+    response = await http.put(url, content=b"hello")
+    loaded = await repository.get(archive.archive_id)
+    assert urlsplit(url).netloc == "127.0.0.1:4566"
+    assert response.status_code == HTTPStatus.OK
+    assert [str(entry.name) for entry in loaded.received] == ["a.txt"]

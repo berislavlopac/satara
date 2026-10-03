@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     QUEUE: str = "satara-uploads"
     """The name of the queue the bucket notifies of each upload."""
 
+    STORAGE_PUBLIC_URL: str | None = None
+    """The address clients use to reach storage, if it differs from the service's own.
+
+    Presigned URLs carry this address, and their signature covers it, so it cannot be changed
+    after signing. It is needed when the service reaches storage by a name clients cannot
+    resolve, as in the local Compose stack; S3 has one address for everyone.
+    """
+
     PRESIGNED_URL_LIFETIME: Annotated[
         timedelta, Field(gt=timedelta(0), le=timedelta(days=7))
     ] = timedelta(hours=1)
