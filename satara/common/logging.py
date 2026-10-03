@@ -88,10 +88,13 @@ def silence_access_log(path: str) -> None:
 def get_logger(name: str) -> unclogger.Unclogger:
     """Return a structured logger, used like a standard one.
 
+    The logger has no level of its own and follows the root logger's, so configuring logging
+    again later, as from the settings, also changes the loggers already made.
+
     Args:
         name: The logger's name, by convention the module's `__name__`.
     """
-    return unclogger.get_logger(name)
+    return unclogger.get_logger(name, level=logging.NOTSET)
 
 
 configure_logging()

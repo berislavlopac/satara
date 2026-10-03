@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from satara.common.logging import configure_logging, silence_access_log
+from satara.common.logging import configure_logging, get_logger, silence_access_log
 
 
 def test_web_server_logs_are_rendered_as_JSON(caplog):
@@ -62,11 +62,20 @@ def test_logging_lowers_the_loggers_of_libraries_only_in_debug_mode(
 
 
 def test_logging_logs_everything_at_debug_level_in_debug_mode(logging_configured_for):
+    """Lowers the service's loggers too, though they were made before debug mode was set.
+
+    A module makes its logger when it is imported, before the settings are read.
+    """
+    service_logger = get_logger("satara.made_on_import")
     logging_configured_for(debug=True)
 
     levels = {
-        logging.getLogger(name).getEffectiveLevel()
-        for name in ["satara.anything", "uvicorn.access", "uvicorn.error"]
+        logger.getEffectiveLevel()
+        for logger in [
+            service_logger,
+            logging.getLogger("uvicorn.access"),
+            logging.getLogger("uvicorn.error"),
+        ]
     }
 
     assert levels == {logging.DEBUG}
