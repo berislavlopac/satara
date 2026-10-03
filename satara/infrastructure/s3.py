@@ -71,21 +71,30 @@ class S3Content:
 class S3FileStorage:
     """Keeps files and built archives in a bucket, handing out presigned URLs for them."""
 
-    def __init__(self, client: S3Client, bucket: str, url_lifetime: timedelta) -> None:
+    def __init__(
+        self,
+        client: S3Client,
+        bucket: str,
+        url_lifetime: timedelta,
+        signing_client: S3Client | None = None,
+    ) -> None:
         """Set up the storage.
 
         Args:
             client: The S3 client, open for as long as the storage is used.
             bucket: The bucket that holds the archives.
             url_lifetime: How long a presigned URL stays valid.
+            signing_client: A client for the address clients reach storage by, to sign URLs
+                with, if it differs from `client`'s. Signing makes no request.
         """
         self._client = client
+        self._signing_client = signing_client or client
         self._bucket = bucket
         self._expires_in = int(url_lifetime.total_seconds())
 
     async def create_upload_url(self, archive_id: ArchiveID, position: int, size: int) -> str:
         """Return a presigned URL that accepts a PUT of exactly `size` bytes."""
-        return await self._client.generate_presigned_url(
+        return await self._signing_client.generate_presigned_url(
             "put_object",
             Params={
                 "Bucket": self._bucket,
@@ -145,7 +154,7 @@ class S3FileStorage:
 
     async def create_download_url(self, archive_id: ArchiveID, file_name: str) -> str:
         """Return a presigned URL that serves the built archive as an attachment."""
-        return await self._client.generate_presigned_url(
+        return await self._signing_client.generate_presigned_url(
             "get_object",
             Params={
                 "Bucket": self._bucket,

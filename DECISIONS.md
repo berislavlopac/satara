@@ -394,6 +394,21 @@ The S3 client is aiobotocore, which reads the endpoint, credentials and region f
 standard AWS environment variables. It reads the region from `AWS_DEFAULT_REGION`, not
 `AWS_REGION`, and otherwise falls back to the developer's own AWS configuration.
 
+### Presigned URLs carry the address clients use
+
+A presigned URL holds the address of storage, and its signature covers that address, so it
+cannot be rewritten after signing. In the Compose stack the service reaches storage as
+`storage:4566`, a name only other containers can resolve, while a client on the host reaches
+it as `localhost:4566`. The setting `STORAGE_PUBLIC_URL` gives the address clients use, and
+URLs are signed with a second S3 client for that address; signing makes no request, so that
+client never connects. On AWS the setting stays unset, as S3 has one address for everyone.
+
+Running the service on the host's network, so that `localhost` meant the same everywhere,
+was rejected. It works without setup only on Linux. On a Mac, Docker Desktop supports it
+only from version 4.34, as an option that must be switched on and needs the user signed in
+to a Docker account, and not with Enhanced Container Isolation; other runtimes vary. Someone
+trying the stack on a Mac should not have to change their Docker settings first.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
