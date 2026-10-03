@@ -6,6 +6,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
+    PrivateAttr,
     model_serializer,
     model_validator,
 )
@@ -35,8 +36,8 @@ class Entity(BaseModel):
     Subclasses override the `identity` property.
     """
 
-    _events: list[DomainEvent] = []
-    """Internal list of events related to this entity."""
+    _events: list[DomainEvent] = PrivateAttr(default_factory=list)
+    """The events recorded and not yet pulled."""
 
     @property
     def identity(self) -> Hashable:
@@ -55,11 +56,14 @@ class Entity(BaseModel):
     def __hash__(self) -> int:
         return hash((type(self).__name__, self.identity))
 
-    def set_event(self, event: DomainEvent) -> None:
+    def record_event(self, event: DomainEvent) -> None:
+        """Record an event, to be published once the change that caused it is saved."""
         self._events.append(event)
 
-    def get_events(self) -> list[DomainEvent]:
-        return self._events
+    def pull_events(self) -> list[DomainEvent]:
+        """Return the events recorded so far and forget them, so each is published once."""
+        events, self._events = self._events, []
+        return events
 
 
 class IDModel(ValueObject):

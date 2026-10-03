@@ -1,32 +1,44 @@
+"""Domain events, and the port that delivers them to their handlers."""
+
 from collections.abc import Iterable
 from datetime import UTC, datetime
-from typing import Annotated, Any, Protocol
+from typing import Annotated, Protocol
 from uuid import UUID, uuid7
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DomainEvent(BaseModel):
-    """Abstract envelope for all domain events."""
+    """Base class for something that happened in the domain.
+
+    A subclass names the event and declares the fields that describe it.
+    """
+
+    model_config = ConfigDict(frozen=True)
 
     event_id: Annotated[UUID, Field(default_factory=uuid7)]
     """The unique ID of the event."""
     timestamp: Annotated[datetime, Field(default_factory=lambda: datetime.now(tz=UTC))]
-    """Date and time of the event object creation."""
-    payload: BaseModel
-    """Payload of the event; must be a BaseModel subclass."""
-
-    def serialize(self) -> dict[str, Any]:
-        return self.payload.model_dump(mode="json")
+    """When the event happened, in UTC."""
 
 
 class DomainEventHandler[T: DomainEvent](Protocol):
-    async def handle(self, event: T) -> None: ...
+    """Reacts to one type of event."""
+
+    async def handle(self, event: T) -> None:
+        """React to the event."""
+        ...
 
 
 class EventBroker(Protocol):
-    def subscribe(self, event_type: type[DomainEvent], handler: DomainEventHandler) -> None: ...
+    """Delivers events to the handlers subscribed to their types."""
 
-    async def publish(self, event: DomainEvent) -> None: ...
+    def subscribe[T: DomainEvent](
+        self, event_type: type[T], handler: DomainEventHandler[T]
+    ) -> None:
+        """Have `handler` receive every event of `event_type` published from now on."""
+        ...
 
-    async def publish_all(self, events: Iterable[DomainEvent]) -> None: ...
+    async def publish(self, events: Iterable[DomainEvent]) -> None:
+        """Deliver each event, in order, to the handlers subscribed to its type."""
+        ...
