@@ -128,7 +128,7 @@ sequenceDiagram
     participant API as API endpoint
     participant Service as Archive service
     participant Writer as ZIP writer
-    Client->>API: POST /archive-files: files, name
+    Client->>API: POST /archive-files with the files and a name
     Note over API: Refused with 413 as soon as the body passes its limit
     API->>Service: archive_files
     Service->>Service: check the limits, name the files
@@ -167,25 +167,33 @@ sequenceDiagram
     participant Bucket as Bucket (S3)
     participant Queue as Upload queue (SQS)
     participant Consumer
-    Client->>API: POST /archives: names and sizes
-    API->>Bucket: write the manifest
-    API-->>Client: 201, the status URL, an upload URL per file
+    Client->>API: POST /archives with the files' names and sizes
+    API->>Bucket: PUT archives/{id}/manifest.json
+    API->>API: sign an upload URL per file, with no request to storage
+    API-->>Client: 201, the status URL and the upload URLs
     par each file, in any order
-        Client->>Bucket: PUT the file to its URL
+        Client->>Bucket: PUT uploads/{id}/{n} at its signed URL
         Bucket->>Queue: notify of the upload
     end
-    loop until every file has arrived
-        Consumer->>Queue: receive a batch
-        Consumer->>Bucket: compare the uploads with the manifest
-        Consumer->>Queue: delete the batch
+    loop while notifications arrive
+        Consumer->>Queue: receive up to ten notifications
+        Consumer->>Bucket: list the archive's uploads, compare them with the manifest
+        opt every file has arrived
+            Consumer->>Bucket: read the files, write archives/{id}/archive
+        end
+        Consumer->>Queue: delete the notifications handled
     end
-    Consumer->>Bucket: read the files, write the ZIP
-    loop until ready
-        Client->>API: GET the status URL
-        API->>Bucket: what has arrived, and is the archive built?
-        API-->>Client: pending, or ready with a download URL
+    loop until no longer pending
+        Client->>API: GET /archives/{id}
+        API->>Bucket: list the archive's objects
+        alt the archive is built
+            API->>API: sign a download URL
+            API-->>Client: ready, with the download URL
+        else not yet
+            API-->>Client: pending, with the number of files received
+        end
     end
-    Client->>Bucket: GET the archive from its URL
+    Client->>Bucket: GET archives/{id}/archive at its signed URL
 ```
 
 1. **The endpoint** calls `create_archive`, which checks the declared files against the
