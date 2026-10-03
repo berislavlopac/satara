@@ -47,7 +47,12 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences
+  # Fences marked `mermaid` are drawn as diagrams by the theme.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 # Ordered by who is reading: someone running the service, someone calling it, someone
 # changing it, and someone assessing it as a take-home exercise. The AI write-up stands on its
