@@ -253,3 +253,53 @@ class ArchiveWriter(Protocol):
     def write(self, archive: Archive) -> AsyncIterator[bytes]:
         """Produce the archive's bytes, in order, reading each file's content as it goes."""
         ...
+
+
+class ArchiveNotFoundError(LookupError):
+    """No archive has the ID asked for."""
+
+
+class ArchiveRepository(Protocol):
+    """Keeps archives: their identity, name, files, and how far each has got.
+
+    The content of the files is kept by `FileStorage`.
+    """
+
+    async def add(self, archive: Archive) -> None:
+        """Keep a new archive."""
+        ...
+
+    async def get(self, archive_id: ArchiveID) -> Archive:
+        """Return the archive with the given ID, as it stands now.
+
+        Each file's content can be read once the file has arrived.
+
+        Raises:
+            ArchiveNotFoundError: No archive has the ID.
+        """
+        ...
+
+
+class FileStorage(Protocol):
+    """Holds the content of archived files, and each archive once it is built.
+
+    A file is identified by its archive and its position in that archive, counting from 0.
+    """
+
+    async def create_upload_url(self, archive_id: ArchiveID, position: int, size: int) -> str:
+        """Return a URL that accepts the file's content, of exactly `size` bytes, for a time."""
+        ...
+
+    def open_file(self, archive_id: ArchiveID, position: int) -> Content:
+        """Return the file's content, read only as it is consumed."""
+        ...
+
+    async def save_archive(
+        self, archive_id: ArchiveID, media_type: str, chunks: AsyncIterator[bytes]
+    ) -> None:
+        """Store the built archive's bytes, consuming them as they are produced."""
+        ...
+
+    async def create_download_url(self, archive_id: ArchiveID, file_name: str) -> str:
+        """Return a URL that serves the built archive as `file_name`, for a time."""
+        ...
