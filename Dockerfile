@@ -1,5 +1,5 @@
 # Build stage: installs the locked runtime dependencies into a virtual environment.
-FROM ghcr.io/astral-sh/uv:0.12.22-python3.14-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.23-python3.14-trixie-slim AS build
 
 # Compile to bytecode ahead of time for a faster start, copy files out of the cache rather
 # than linking to it, and use the image's own Python instead of downloading one.
