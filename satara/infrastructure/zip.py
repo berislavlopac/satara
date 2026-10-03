@@ -1,4 +1,4 @@
-"""Adapters for the ports declared in the domain."""
+"""An archive writer for the ZIP format."""
 
 import asyncio
 import zipfile
