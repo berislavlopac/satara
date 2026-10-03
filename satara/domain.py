@@ -133,6 +133,8 @@ class ArchiveStatus(StrEnum):
     """Not built yet; files may still be arriving."""
     READY = "ready"
     """Built, and ready to be fetched."""
+    FAILED = "failed"
+    """Every file arrived, but the archive could not be built."""
 
 
 class AllFilesReceived(DomainEvent):
@@ -165,6 +167,8 @@ class Archive(Entity):
     """The folded names of the entries whose content has arrived."""
     _is_built: bool = PrivateAttr(default=False)
     """Whether the archive has been built."""
+    _has_failed: bool = PrivateAttr(default=False)
+    """Whether building the archive has failed."""
 
     @property
     def identity(self) -> ArchiveID:
@@ -186,9 +190,16 @@ class Archive(Entity):
         return self._is_built
 
     @property
+    def is_complete(self) -> bool:
+        """Whether every file has arrived."""
+        return len(self._received) == len(self._entries)
+
+    @property
     def status(self) -> ArchiveStatus:
-        """How far the archive has got."""
-        return ArchiveStatus.READY if self._is_built else ArchiveStatus.PENDING
+        """How far the archive has got; a built archive is ready even after a failure."""
+        if self._is_built:
+            return ArchiveStatus.READY
+        return ArchiveStatus.FAILED if self._has_failed else ArchiveStatus.PENDING
 
     def __contains__(self, name: object) -> bool:
         return isinstance(name, EntryName) and name.folded in self._entries
@@ -233,12 +244,17 @@ class Archive(Entity):
         """Note that the archive has been built."""
         self._is_built = True
 
+    def mark_failed(self) -> None:
+        """Note that building the archive has failed."""
+        self._has_failed = True
+
     def check_complete(self) -> None:
         """Record `AllFilesReceived` if every file has arrived and the archive is not built.
 
-        Each call checks afresh, so two calls on a complete archive record the event twice.
+        Each call checks afresh, so two calls on a complete archive record the event twice. A
+        failed archive records it too, so that it can be built at a later attempt.
         """
-        if not self._is_built and len(self._received) == len(self._entries):
+        if not self._is_built and self.is_complete:
             self.record_event(AllFilesReceived(archive_id=self.archive_id))
 
 
@@ -267,6 +283,10 @@ class ArchiveRepository(Protocol):
 
     async def add(self, archive: Archive) -> None:
         """Keep a new archive."""
+        ...
+
+    async def mark_failed(self, archive_id: ArchiveID) -> None:
+        """Note that building the archive with the given ID has failed."""
         ...
 
     async def get(self, archive_id: ArchiveID) -> Archive:

@@ -2,7 +2,8 @@
 
 Each archive has two prefixes. `uploads/<id>/<n>` holds the file at position `n`, uploaded by
 the client; the bucket notifies of objects under `uploads/` only. `archives/<id>/` holds the
-manifest, written once when the archive is created, and the built archive.
+manifest, written once when the archive is created, the built archive, and a marker if the
+build failed.
 """
 
 from collections.abc import AsyncIterator
@@ -33,6 +34,7 @@ S3 takes at most 10,000 parts, so this bounds a built archive at about 156 GiB.
 """
 
 _ARCHIVE = "archive"
+_FAILED = "failed"
 _MANIFEST = "manifest.json"
 
 
@@ -213,8 +215,14 @@ class S3ArchiveRepository:
             ContentType="application/json",
         )
 
+    async def mark_failed(self, archive_id: ArchiveID) -> None:
+        """Write a marker that building the archive has failed."""
+        await self._client.put_object(
+            Bucket=self._bucket, Key=f"{_to_archive_prefix(archive_id)}{_FAILED}", Body=b""
+        )
+
     async def get(self, archive_id: ArchiveID) -> Archive:
-        """Rebuild the archive from its manifest, marking the files uploaded and whether built.
+        """Rebuild the archive from its manifest, marking the files uploaded and how far it got.
 
         Raises:
             ArchiveNotFoundError: The bucket holds no manifest for the ID.
@@ -240,8 +248,11 @@ class S3ArchiveRepository:
             position = key.removeprefix(upload_prefix)
             if position.isdigit() and int(position) < len(entries):
                 archive.receive(entries[int(position)].name)
-        if f"{archive_prefix}{_ARCHIVE}" in await self._list_keys(archive_prefix):
+        archive_keys = await self._list_keys(archive_prefix)
+        if f"{archive_prefix}{_ARCHIVE}" in archive_keys:
             archive.mark_built()
+        if f"{archive_prefix}{_FAILED}" in archive_keys:
+            archive.mark_failed()
         return archive
 
     async def _list_keys(self, prefix: str) -> set[str]:

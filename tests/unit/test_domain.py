@@ -240,3 +240,31 @@ def test_archive_is_pending_until_built_and_ready_after(archive_of_two):
     archive_of_two.mark_built()
 
     assert (before, archive_of_two.status) == (ArchiveStatus.PENDING, ArchiveStatus.READY)
+
+
+def test_archive_is_failed_once_its_build_has_failed(archive_of_two):
+    archive_of_two.mark_failed()
+
+    status = archive_of_two.status
+
+    assert status == ArchiveStatus.FAILED
+
+
+def test_archive_is_ready_once_built_even_after_a_failed_build(archive_of_two):
+    archive_of_two.mark_failed()
+
+    archive_of_two.mark_built()
+
+    assert archive_of_two.status == ArchiveStatus.READY
+
+
+def test_archive_records_that_all_files_were_received_after_a_failed_build(archive_of_two):
+    """Records the event again, so a later attempt can still build the archive."""
+    for entry in archive_of_two.entries:
+        archive_of_two.receive(entry.name)
+    archive_of_two.mark_failed()
+
+    archive_of_two.check_complete()
+
+    events = archive_of_two.pull_events()
+    assert summarise(events) == [(AllFilesReceived, archive_of_two.archive_id)]
