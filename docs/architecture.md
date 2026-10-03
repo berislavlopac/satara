@@ -92,11 +92,14 @@ records the reasoning in full.
 
 The tests in `tests/unit/` cover each layer through its public surface, from the domain's naming
 rules, partly with generated inputs, to the whole application driven through the test client
-with the real ZIP writer. The deferred flow's use cases and endpoints run against in-memory
-doubles of the repository, file storage and broker.
+with the real ZIP writer. The deferred flow's use cases, endpoints and consumer run against
+in-memory doubles of the repository, file storage, broker and queue. The S3 and SQS adapters
+run against moto, an AWS emulator started inside the test process, so the unit tests need no
+Docker and cover every module.
 
-The tests in `tests/integration/` run against the local Compose stack, `just test-integration`:
-the S3 adapters against the emulator, and one test that takes an archive through the whole
+The tests in `tests/integration/` are a further layer, run against the local Compose stack with
+`just test-integration`. They show what only a full emulator can: storage enforcing a presigned
+upload's size, a download served under its name, and an archive taken through the whole
 deferred flow, from creating it to downloading the built ZIP.
 
 They are written to be read as well as run: a test's name reads as a sentence describing the
