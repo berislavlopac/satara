@@ -10,7 +10,7 @@ becomes a package. A layer depends only on the ones above it in this list.
 | Domain           | `domain.py`         | The archive, the rules for its names, and the ports it is written through. |
 | Application      | `application/`      | The use case, `archive_files`: the limits, and building the archive.  |
 | Infrastructure   | `infrastructure/`   | The ZIP writer, which implements the domain's writer port.            |
-| Presentation     | `presentation.py`   | The HTTP endpoints and the answers to refused requests.               |
+| Presentation     | `presentation/`     | The HTTP endpoints and the answers to refused requests.               |
 | Wiring           | `wiring.py`         | Builds the application from its settings.                             |
 
 Settings are read in `config.py`. `common/` holds generic utilities with no project vocabulary.

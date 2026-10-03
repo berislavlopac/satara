@@ -16,7 +16,7 @@ from satara.domain import ArchiveNotFoundError
 from satara.infrastructure.events import InProcessEventBroker
 from satara.infrastructure.s3 import S3ArchiveRepository, S3FileStorage
 from satara.infrastructure.zip import ZipArchiveWriter
-from satara.presentation import (
+from satara.presentation.http import (
     deferred_router,
     handle_archive_not_found,
     handle_upload_rejected,

@@ -1,4 +1,4 @@
-"""HTTP interface of the service."""
+"""The HTTP interface: the endpoints of both flows and the answers to refused requests."""
 
 from http import HTTPStatus
 from typing import Annotated
