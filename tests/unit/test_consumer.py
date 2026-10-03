@@ -31,8 +31,9 @@ def test_to_archive_ID_reads_the_archive_from_an_upload_notification():
         notification(f"archives/{ArchiveID.generate()}/archive"),
         notification("uploads/not-an-id/0"),
         QueueMessage(body="not JSON", handle="h", attempt=1),
+        QueueMessage(body=json.dumps({"Records": ["not an event"]}), handle="h", attempt=1),
     ],
-    ids=["test event", "not an upload", "no archive ID", "not JSON"],
+    ids=["test event", "not an upload", "no archive ID", "not JSON", "not an event"],
 )
 def test_to_archive_ID_ignores_anything_but_an_upload_notification(message):
     result = to_archive_id(message)
