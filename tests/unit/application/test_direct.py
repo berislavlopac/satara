@@ -2,16 +2,14 @@ import re
 
 import pytest
 
-from satara.application import (
-    ArchiveFilesCommand,
-    ArchiveService,
+from satara.application.base import (
     FileTooLargeError,
     InvalidArchiveNameError,
     InvalidFileNameError,
     NoFilesError,
     TooManyFilesError,
-    UploadedFile,
 )
+from satara.application.direct import ArchiveFilesCommand, ArchiveService, UploadedFile
 
 
 @pytest.fixture

@@ -2,13 +2,13 @@
 
 ## Layers
 
-The code in `satara/` is split into layers, each a single module for now. A layer depends only
-on the ones above it in this list.
+The code in `satara/` is split into layers, each a single module until it outgrows one and
+becomes a package. A layer depends only on the ones above it in this list.
 
 | Layer            | Module              | Holds                                                                  |
 |------------------|---------------------|------------------------------------------------------------------------|
 | Domain           | `domain.py`         | The archive, the rules for its names, and the ports it is written through. |
-| Application      | `application.py`    | The use case, `archive_files`: the limits, and building the archive.  |
+| Application      | `application/`      | The use case, `archive_files`: the limits, and building the archive.  |
 | Infrastructure   | `infrastructure.py` | The ZIP writer, which implements the domain's writer port.            |
 | Presentation     | `presentation.py`   | The HTTP endpoints and the answers to refused requests.               |
 | Wiring           | `wiring.py`         | Builds the application from its settings.                             |

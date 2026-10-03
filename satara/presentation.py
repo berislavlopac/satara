@@ -8,14 +8,12 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from satara.application import (
-    ArchiveFilesCommand,
-    ArchiveService,
+from satara.application.base import (
     FileTooLargeError,
     InvalidArchiveNameError,
     TooManyFilesError,
-    UploadedFile,
 )
+from satara.application.direct import ArchiveFilesCommand, ArchiveService, UploadedFile
 from satara.common.models import FrozenModel
 
 router = APIRouter()
