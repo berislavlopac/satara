@@ -169,7 +169,7 @@ sequenceDiagram
     participant Consumer
     Client->>API: POST /archives with the files' names and sizes
     API->>Bucket: PUT archives/{id}/manifest.json
-    API->>API: sign an upload URL per file, with no request to storage
+    API->>API: sign an upload URL per file
     API-->>Client: 201, the status URL and the upload URLs
     par each file, in any order
         Client->>Bucket: PUT uploads/{id}/{n} at its signed URL
