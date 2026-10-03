@@ -102,7 +102,7 @@ class Consumer:
     def _is_last_attempt(self, messages: list[QueueMessage]) -> bool:
         if self._max_attempts is None:
             return False
-        return max(message.receive_count for message in messages) >= self._max_attempts
+        return max(message.attempt for message in messages) >= self._max_attempts
 
     async def _record_failure(self, archive_id: ArchiveID) -> None:
         try:

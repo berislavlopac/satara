@@ -58,6 +58,9 @@ markers = [
 
 [tool.coverage.run]
 source = ["satara/"]
+# The adapters to S3 and SQS are tested against the emulator in the integration tests, which
+# the unit suite's coverage does not measure.
+omit = ["satara/infrastructure/s3.py", "satara/infrastructure/sqs.py"]
 
 [tool.coverage.report]
 skip_covered = true

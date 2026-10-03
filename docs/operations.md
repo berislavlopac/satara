@@ -50,7 +50,7 @@ address, so the URL must be signed for the address the client will use.
 
 - The bucket, notifying the queue of every object created under `uploads/`.
 - The queue, with a visibility timeout long enough for a build (30 minutes in the local
-  stack), and a dead-letter queue that takes a message after three failed receives.
+  stack), and a dead-letter queue that takes a message after three failed attempts.
 
 The local stack's setup step, `compose/storage-setup.sh`, creates all of these. On AWS the
 queue also needs a policy letting the bucket send to it. Nothing reads the dead-letter queue:

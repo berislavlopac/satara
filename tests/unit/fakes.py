@@ -3,9 +3,11 @@
 Tests receive these through fixtures and never import them.
 """
 
+import asyncio
 from collections.abc import AsyncIterator, Iterable
 
 from satara.common.events import DomainEvent, DomainEventHandler, EventBroker
+from satara.common.queue import MessageQueue, QueueMessage
 from satara.domain import (
     Archive,
     ArchiveID,
@@ -121,3 +123,43 @@ class RecordingBroker(EventBroker):
 
     async def publish(self, events: Iterable[DomainEvent]) -> None:
         self.published.extend(events)
+
+
+class FailingBroker(EventBroker):
+    """A broker whose every delivery fails, as when building an archive fails."""
+
+    def subscribe[T: DomainEvent](
+        self, event_type: type[T], handler: DomainEventHandler[T]
+    ) -> None:
+        pass
+
+    async def publish(self, events: Iterable[DomainEvent]) -> None:
+        if list(events):
+            raise RuntimeError("The build failed")
+
+
+class MemoryQueue(MessageQueue):
+    """A queue that hands out prepared batches, then stops its consumer once they run out.
+
+    It records the messages deleted, and leaves the rest as a real queue would.
+    """
+
+    def __init__(
+        self, batches: list[list[QueueMessage]], stop: asyncio.Event, max_attempts: int | None
+    ) -> None:
+        self._batches = list(batches)
+        self._stop = stop
+        self._max_attempts = max_attempts
+        self.deleted: list[QueueMessage] = []
+
+    async def receive(self) -> list[QueueMessage]:
+        if not self._batches:
+            self._stop.set()
+            return []
+        return self._batches.pop(0)
+
+    async def delete(self, message: QueueMessage) -> None:
+        self.deleted.append(message)
+
+    async def read_max_attempts(self) -> int | None:
+        return self._max_attempts
