@@ -247,8 +247,8 @@ Two limits are capped, so that a setting cannot promise what the service cannot 
   service sees the request, so a higher setting would have no effect.
 - `MAX_FILE_SIZE` is at most 2000 MiB. The archive is written without the ZIP64 extensions,
   and without them the ZIP library writes a file of at most 2 GiB, compressed or not. A larger
-  file would fail after the response had started, cutting the download short. The margin covers compression, which
-  makes a file that does not compress slightly larger.
+  file would fail after the response had started, cutting the download short. The margin
+  covers compression, which makes a file that does not compress slightly larger.
 
 ### Every 422 has the web framework's form
 
