@@ -16,6 +16,7 @@ from satara.config import Settings
 from satara.wiring import open_consumer
 
 HEARTBEAT_FILE = Path(tempfile.gettempdir()) / "satara-consumer-alive"
+"""The file the consumer touches every 15 seconds while it runs, for a health check to test."""
 
 log = get_logger("satara.consumer")
 

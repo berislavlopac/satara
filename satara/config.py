@@ -7,7 +7,9 @@ from pydantic import ByteSize, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 MIB = 2**20
+"""A mebibyte, 2**20 bytes; not a megabyte, which is 10**6."""
 GIB = 2**30
+"""A gibibyte, 2**30 bytes; not a gigabyte, which is 10**9."""
 
 type Size = Annotated[ByteSize, Field(gt=0)]
 """A size in bytes. Read from the environment, it may carry a unit: `50MiB`, `200MB`."""
