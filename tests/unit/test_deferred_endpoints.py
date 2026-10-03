@@ -19,7 +19,7 @@ def client(repository, storage, broker, recording_writer):
     The client is not entered as a context, so the application never starts and never opens
     its storage clients.
     """
-    app = create_app(Settings(DEFERRED_ENABLED=True, _env_file=None))
+    app = create_app(Settings(DEFERRED_ENABLED=True, DEFERRED_MAX_FILES=3, _env_file=None))
     limits = Limits(max_files=3, max_file_size=10, max_total_size=25)
     service = DeferredArchiveService(repository, storage, broker, recording_writer, limits)
     app.dependency_overrides[get_deferred_service] = lambda: service
@@ -60,6 +60,18 @@ def test_create_archive_refuses_files_over_the_limit(client):
 
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
     assert response.json() == {"detail": "'a.txt' is 11 bytes; at most 10 are allowed"}
+
+
+def test_create_archive_refuses_a_body_larger_than_its_declarations_need(client):
+    """Refuses it before parsing it, allowing a body of 1 KiB for each file allowed.
+
+    One file with a long name keeps within every other limit, so only the body's size refuses.
+    """
+    files = [{"name": "a" * 4000 + ".txt", "size": 1}]
+
+    response = client.post("/archives", json={"files": files})
+
+    assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
 
 
 def test_create_archive_refuses_an_unusable_file_name(client):

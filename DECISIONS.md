@@ -448,6 +448,14 @@ CI runs the integration tests against the same Compose stack as a developer's ma
 job of its own: it builds the image, starts the stack and waits until every service is
 healthy, runs the tests, and shows the stack's logs if they fail. It still deploys nothing.
 
+### Creating an archive has its own body limit
+
+The direct flow's body limit, 200 MiB by default, also covered `POST /archives`, whose JSON
+body is parsed whole in memory: 25 MiB of declarations took seconds and over a gigabyte. That
+endpoint has its own limit, 1 KiB for each file allowed, applied by the same middleware for
+that path only. FastAPI does not expose Starlette's per-route limit, so the limit is matched
+by path.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

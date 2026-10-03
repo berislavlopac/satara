@@ -11,6 +11,7 @@ from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 from satara.application.base import Limits, UploadRejectedError
 from satara.application.deferred import ArchiveBuilder, DeferredArchiveService
 from satara.application.direct import ArchiveService
+from satara.common.middleware import PathBodyLimitMiddleware
 from satara.config import Settings
 from satara.domain import AllFilesReceived, ArchiveNotFoundError
 from satara.infrastructure.events import InProcessEventBroker
@@ -22,6 +23,9 @@ from satara.presentation.http import (
     handle_upload_rejected,
     router,
 )
+
+DECLARATION_SIZE = 1024
+"""The body size allowed for each file declared when creating an archive, in bytes."""
 
 
 @asynccontextmanager
@@ -95,6 +99,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         max_total_size=settings.MAX_TOTAL_SIZE,
     )
     app.state.archive_service = ArchiveService(ZipArchiveWriter(), limits)
+    if settings.DEFERRED_ENABLED:
+        # A declaration of the most files allowed needs far less than the direct flow's limit,
+        # and a JSON body is parsed in memory, so creating an archive has a limit of its own.
+        # Added first, it runs inside the limit below, and the inner of two limits applies.
+        app.add_middleware(
+            PathBodyLimitMiddleware,
+            path="/archives",
+            max_body_size=settings.DEFERRED_MAX_FILES * DECLARATION_SIZE,
+        )
     # Refuses an oversized body as it arrives, before the form parser stores it on disk.
     app.add_middleware(RequestBodyLimitMiddleware, max_body_size=settings.MAX_TOTAL_SIZE)
     app.add_exception_handler(UploadRejectedError, handle_upload_rejected)
