@@ -5,47 +5,45 @@ its files in a single request and receives the archive in the response, streamed
 written. In the deferred flow, for larger archives, the client uploads each file straight to
 storage and fetches the archive once a queue consumer has built it.
 
-## Quick start
+## Try it in five minutes
 
-With Docker:
-
-```shell
-docker build -t satara .
-docker run --rm -p 8000:8000 satara
-```
-
-Then:
+All it needs is [Docker](https://docs.docker.com/get-docker/) with Compose, `curl`, and Python 3.10 or later. This runs both flows, from a clone to two downloaded archives:
 
 ```shell
-curl --form files=@notes.txt --form files=@data.csv --form name=report \
-    --output report.zip http://localhost:8000/archive-files
+git clone https://github.com/berislavlopac/satara.git && cd satara
+docker compose up -d --build --wait     # the API, the consumer, emulated S3 and SQS
+
+printf 'hello\n' > notes.txt && printf '1,2\n3,4\n' > data.csv
+
+# The direct flow: one request, and the ZIP comes back
+curl --form files=@notes.txt --form files=@data.csv --form name=direct \
+    --output direct.zip http://localhost:8000/archive-files
+unzip -l direct.zip
+
+# The deferred flow: declare the files, upload them to storage, wait for the build, download
+python3 scripts/archive.py --deferred notes.txt data.csv --name deferred
+unzip -l deferred.zip
+
+docker compose down
 ```
 
-The deferred flow needs storage and the consumer. Docker Compose runs them locally, with an
-emulator standing in for S3 and SQS:
+While the stack runs, the service documents its own API at <http://localhost:8000/docs>, where each endpoint can be tried from the browser. `scripts/archive.py` needs nothing beyond Python's standard library; `python3 scripts/archive.py --help` lists its options, and without `--deferred` it uses the direct flow.
 
-```shell
-docker compose up -d --build --wait
-```
+## Develop it
 
-[Getting started](docs/getting-started.md) shows how to try both flows, with
-`just archive` and `just archive-deferred`.
-
-For development, with [uv](https://docs.astral.sh/uv/):
+With [uv](https://docs.astral.sh/uv/), which also brings [just](https://just.systems) for the project's tasks:
 
 ```shell
 uv sync --all-groups
 uv run prek install
-uv run just serve
+uv run just --list
 ```
+
+`uv run just up` starts the stack, and `uv run just archive` and `uv run just archive-deferred` run the client script. [Getting started](docs/getting-started.md) has the details.
 
 ## Documentation
 
-The documentation is in [`docs/`](docs/index.md), and is built as a site with
-`uv run just docs`, served at <http://localhost:7000>. It covers
-[getting started](docs/getting-started.md), [the API](docs/api.md),
-[configuration](docs/configuration.md), [deployment](docs/deployment.md),
-[CI and quality checks](docs/ci.md) and [the architecture](docs/architecture.md).
+The documentation is in [`docs/`](docs/index.md). To read it as a site, run `uv run just docs` and open <http://localhost:7000>. It covers [getting started](docs/getting-started.md), [the API](docs/api.md), [configuration](docs/configuration.md), [deployment](docs/deployment.md), [CI and quality checks](docs/ci.md) and [the architecture](docs/architecture.md).
 
 ## Decisions and trade-offs
 
