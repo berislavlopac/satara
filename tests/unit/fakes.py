@@ -163,3 +163,32 @@ class MemoryQueue(MessageQueue):
 
     async def read_max_attempts(self) -> int | None:
         return self._max_attempts
+
+
+class SampleEvent(DomainEvent):
+    """An event for tests, labelled to tell one from another."""
+
+    label: str
+    """What tells this event apart."""
+
+
+class OtherEvent(DomainEvent):
+    """An event of another type than `SampleEvent`."""
+
+
+class RecordingHandler(DomainEventHandler[SampleEvent]):
+    """A handler that notes each event it handles, under its own name, in a shared log."""
+
+    def __init__(self, name: str, log: list[tuple[str, str]]) -> None:
+        self._name = name
+        self._log = log
+
+    async def handle(self, event: SampleEvent) -> None:
+        self._log.append((self._name, event.label))
+
+
+class FailingHandler(DomainEventHandler[SampleEvent]):
+    """A handler that fails on every event."""
+
+    async def handle(self, event: SampleEvent) -> None:
+        raise RuntimeError("The handler failed")

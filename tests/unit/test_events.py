@@ -1,45 +1,27 @@
 import pytest
 
-from satara.common.events import DomainEvent
 from satara.infrastructure.events import InProcessEventBroker
 
 
-class Happened(DomainEvent):
-    what: str
-
-
-class Other(DomainEvent):
-    pass
-
-
-class Recorder:
-    def __init__(self, name, log):
-        self.name = name
-        self.log = log
-
-    async def handle(self, event):
-        self.log.append((self.name, event.what))
-
-
-class Failing:
-    async def handle(self, event):
-        raise RuntimeError("handler failed")
-
-
-async def test_in_process_broker_delivers_each_event_to_its_subscribers_in_order():
+async def test_in_process_broker_delivers_each_event_to_its_subscribers_in_order(
+    sample_event, other_event, recording_handler
+):
     log = []
     broker = InProcessEventBroker()
-    broker.subscribe(Happened, Recorder("first", log))
-    broker.subscribe(Happened, Recorder("second", log))
+    broker.subscribe(sample_event, recording_handler("first", log))
+    broker.subscribe(sample_event, recording_handler("second", log))
+    events = [sample_event(label="a"), other_event(), sample_event(label="b")]
 
-    await broker.publish([Happened(what="a"), Other(), Happened(what="b")])
+    await broker.publish(events)
 
     assert log == [("first", "a"), ("second", "a"), ("first", "b"), ("second", "b")]
 
 
-async def test_in_process_broker_lets_a_handler_failure_reach_the_publisher():
+async def test_in_process_broker_lets_a_handler_failure_reach_the_publisher(
+    sample_event, failing_handler
+):
     broker = InProcessEventBroker()
-    broker.subscribe(Happened, Failing())
+    broker.subscribe(sample_event, failing_handler)
 
     with pytest.raises(RuntimeError):
-        await broker.publish([Happened(what="a")])
+        await broker.publish([sample_event(label="a")])
