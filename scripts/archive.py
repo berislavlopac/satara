@@ -1,6 +1,6 @@
 """Archive files with a running service, in either flow, and save the ZIP it returns.
 
-It uses only the standard library, so it runs wherever Python does:
+It uses only the standard library, so it runs on any Python from 3.10:
 
     python scripts/archive.py notes.txt data.csv --name report
     python scripts/archive.py --deferred notes.txt data.csv --name report
@@ -8,12 +8,12 @@ It uses only the standard library, so it runs wherever Python does:
 
 import argparse
 import json
+import secrets
 import sys
 import time
-import uuid
 from pathlib import Path
 from typing import IO, Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 POLL_INTERVAL = 1.0
@@ -48,7 +48,8 @@ def save_download(response: Any, output: Path) -> Path:  # noqa: ANN401
 
 def archive_directly(url: str, files: list[Path], name: str | None, output: Path) -> Path:
     """Send the files in one request and save the archive returned."""
-    boundary = uuid.uuid7().hex
+    # The boundary only has to be absent from the files' content; it identifies nothing.
+    boundary = secrets.token_hex(16)
     parts = [
         f'--{boundary}\r\nContent-Disposition: form-data; name="files"; '
         f'filename="{file.name}"\r\n\r\n'.encode()
@@ -66,7 +67,12 @@ def archive_directly(url: str, files: list[Path], name: str | None, output: Path
 
 
 def archive_deferred(url: str, files: list[Path], name: str | None, output: Path) -> Path:
-    """Create an archive, upload each file to storage, wait until it is built, and save it."""
+    """Create an archive, upload each file to storage, wait until it is built, and save it.
+
+    Raises:
+        TimeoutError: The archive was not built in time.
+        RuntimeError: The service could not build the archive.
+    """
     declaration = {
         "name": name,
         "files": [{"name": file.name, "size": file.stat().st_size} for file in files],
@@ -116,10 +122,16 @@ def main() -> int:
     try:
         path = archive(arguments.url, arguments.files, arguments.name, arguments.output)
     except HTTPError as error:
-        print(f"The service refused: {error.code} {error.read().decode()}", file=sys.stderr)
-        return 1
-    print(f"Saved {path}")
-    return 0
+        refuser = "The service" if error.url.startswith(arguments.url) else "Storage"
+        print(f"{refuser} refused: {error.code} {error.read().decode()}", file=sys.stderr)
+    except URLError as error:
+        print(f"Could not connect: {error.reason}", file=sys.stderr)
+    except (OSError, RuntimeError) as error:
+        print(error, file=sys.stderr)
+    else:
+        print(f"Saved {path}")
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
