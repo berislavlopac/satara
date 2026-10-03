@@ -1,5 +1,53 @@
 # Architecture
 
+## The system
+
+A client archives files with the service, and in the deferred flow also talks to storage
+directly, through URLs the service signs for it. The service runs on AWS's storage and queues,
+or on anything that speaks their protocols, such as the emulator in the local stack.
+
+```mermaid
+C4Context
+    title System context
+    Person(client, "Client", "Has files to pack into a ZIP archive")
+    System(satara, "Satara", "Packs files into ZIP archives, in one request or as a job")
+    System_Ext(aws, "AWS S3 and SQS", "Object storage and message queues")
+    Rel(client, satara, "Archives files, follows archives", "HTTPS")
+    Rel(client, aws, "Uploads files, downloads archives", "Presigned URLs")
+    Rel(satara, aws, "Keeps archives, reads notifications")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+Inside it, two processes run from one image: the API, which serves both flows, and the consumer,
+which builds deferred archives. The direct flow needs only the API.
+
+```mermaid
+C4Container
+    title Containers
+    Person(client, "Client")
+    System_Boundary(satara, "Satara") {
+        Container(api, "API", "Python, FastAPI", "Both flows' endpoints; signs storage URLs")
+        Container(consumer, "Consumer", "Python", "Builds an archive once its files arrive")
+    }
+    System_Boundary(aws, "AWS") {
+        ContainerDb(bucket, "Bucket", "S3", "Manifests, uploaded files, built archives")
+        ContainerQueue(queue, "Upload queue", "SQS", "One message per upload")
+        ContainerQueue(dead, "Dead-letter queue", "SQS", "Messages that failed three times")
+    }
+    Rel(client, api, "Archives, creates, follows", "HTTPS, JSON")
+    Rel(client, bucket, "Uploads, downloads", "Presigned URLs")
+    Rel(api, bucket, "Writes manifests, reads progress")
+    Rel(bucket, queue, "Notifies of each upload")
+    Rel(consumer, queue, "Receives, deletes")
+    Rel(consumer, bucket, "Reads uploads, writes archives")
+    Rel(queue, dead, "Moves failed messages")
+    UpdateRelStyle(client, api, $offsetX="-90", $offsetY="-50")
+    UpdateRelStyle(client, bucket, $offsetY="-50")
+    UpdateRelStyle(api, bucket, $offsetX="-55", $offsetY="-20")
+    UpdateRelStyle(consumer, queue, $offsetX="-40", $offsetY="15")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="2")
+```
+
 ## Layers
 
 The code in `satara/` is split into layers, each a single module until it outgrows one and
@@ -12,6 +60,38 @@ becomes a package. A layer depends only on the ones above it in this list.
 | Infrastructure | `infrastructure/` | The ZIP writer, the S3 repository and file storage, and an in-process event broker.        |
 | Presentation   | `presentation/`   | The HTTP endpoints, the answers to refused requests, and the queue consumer.               |
 | Wiring         | `wiring.py`       | Builds the application, the deferred flow's service and the consumer from the settings.    |
+
+```mermaid
+flowchart TB
+    wiring["<b>Wiring</b><br>builds everything from the settings"]
+    subgraph presentation["Presentation"]
+        http["HTTP endpoints"]
+        consumer["Queue consumer"]
+    end
+    subgraph application["Application"]
+        direct["Direct flow"]
+        deferred["Deferred flow and the archive builder"]
+    end
+    subgraph domain["Domain"]
+        archive["The archive, its names and its completion"]
+        ports["Ports: Content, ArchiveWriter,<br>ArchiveRepository, FileStorage"]
+    end
+    subgraph infrastructure["Infrastructure"]
+        zip["ZIP writer"]
+        s3["S3 repository and file storage"]
+        sqs["SQS queue"]
+        broker["In-process event broker"]
+    end
+    wiring --> presentation
+    wiring --> infrastructure
+    presentation --> application
+    application --> domain
+    infrastructure -. implements .-> ports
+```
+
+The arrows point the way dependencies do: no layer knows of a layer that depends on it. The SQS
+queue and the event broker implement protocols in `common/`, `MessageQueue` and `EventBroker`,
+rather than the domain's ports, as neither speaks of archives.
 
 Settings are read in `config.py`, and `scripts/consumer.py` starts the consumer the way the
 server starts the application. `common/` holds generic utilities with no project vocabulary:
@@ -41,6 +121,27 @@ bucket's manifests by implementing `ArchiveRepository` alone.
 
 ## A direct request, end to end
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant API as API endpoint
+    participant Service as Archive service
+    participant Writer as ZIP writer
+    Client->>API: POST /archive-files: files, name
+    Note over API: Refused with 413 as soon as the body passes its limit
+    API->>Service: archive_files
+    Service->>Service: check the limits, name the files
+    Service-->>API: the archive's name, and its bytes not yet produced
+    API-->>Client: 200, with headers
+    loop each file, 64 KiB at a time
+        API->>Writer: next bytes
+        Writer->>Writer: read and compress a chunk
+        Writer-->>API: what has been written
+        API-->>Client: the bytes so far
+    end
+```
+
 1. **The body size guard**, Starlette's request body limit middleware, refuses a body larger
    than the total size limit as it arrives, before the form parser stores it.
 2. **The form parser** reads the files, writing any larger than 1 MiB to temporary files.
@@ -57,6 +158,35 @@ A refusal from the service is raised as an exception and answered by one handler
 presentation layer, which picks the status: 413 for a broken limit, 422 for anything else.
 
 ## A deferred archive, end to end
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant API
+    participant Bucket as Bucket (S3)
+    participant Queue as Upload queue (SQS)
+    participant Consumer
+    Client->>API: POST /archives: names and sizes
+    API->>Bucket: write the manifest
+    API-->>Client: 201, the status URL, an upload URL per file
+    par each file, in any order
+        Client->>Bucket: PUT the file to its URL
+        Bucket->>Queue: notify of the upload
+    end
+    loop until every file has arrived
+        Consumer->>Queue: receive a batch
+        Consumer->>Bucket: compare the uploads with the manifest
+        Consumer->>Queue: delete the batch
+    end
+    Consumer->>Bucket: read the files, write the ZIP
+    loop until ready
+        Client->>API: GET the status URL
+        API->>Bucket: what has arrived, and is the archive built?
+        API-->>Client: pending, or ready with a download URL
+    end
+    Client->>Bucket: GET the archive from its URL
+```
 
 1. **The endpoint** calls `create_archive`, which checks the declared files against the
    deferred limits and names them as the direct flow does. The repository writes the archive's
