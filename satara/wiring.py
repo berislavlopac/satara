@@ -9,10 +9,10 @@ from fastapi import FastAPI
 from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 
 from satara.application.base import Limits, UploadRejectedError
-from satara.application.deferred import DeferredArchiveService
+from satara.application.deferred import ArchiveBuilder, DeferredArchiveService
 from satara.application.direct import ArchiveService
 from satara.config import Settings
-from satara.domain import ArchiveNotFoundError
+from satara.domain import AllFilesReceived, ArchiveNotFoundError
 from satara.infrastructure.events import InProcessEventBroker
 from satara.infrastructure.s3 import S3ArchiveRepository, S3FileStorage
 from satara.infrastructure.zip import ZipArchiveWriter
@@ -28,8 +28,9 @@ from satara.presentation.http import (
 async def open_deferred_service(settings: Settings) -> AsyncGenerator[DeferredArchiveService]:
     """Open the storage clients and build the deferred flow's service on them.
 
-    The clients take their endpoint, credentials and region from the standard AWS environment
-    variables, and are closed on exit.
+    An archive is built, through the service's broker, when a check finds all its files
+    arrived. The clients take their endpoint, credentials and region from the standard AWS
+    environment variables, and are closed on exit.
 
     Args:
         settings: The settings to build from.
@@ -56,13 +57,11 @@ async def open_deferred_service(settings: Settings) -> AsyncGenerator[DeferredAr
             max_file_size=settings.DEFERRED_MAX_FILE_SIZE,
             max_total_size=settings.DEFERRED_MAX_TOTAL_SIZE,
         )
-        yield DeferredArchiveService(
-            S3ArchiveRepository(client, settings.BUCKET, storage),
-            storage,
-            InProcessEventBroker(),
-            ZipArchiveWriter(),
-            limits,
-        )
+        repository = S3ArchiveRepository(client, settings.BUCKET, storage)
+        writer = ZipArchiveWriter()
+        broker = InProcessEventBroker()
+        broker.subscribe(AllFilesReceived, ArchiveBuilder(repository, storage, writer))
+        yield DeferredArchiveService(repository, storage, broker, writer, limits)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
