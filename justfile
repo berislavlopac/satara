@@ -31,6 +31,7 @@ serve:
 [group('Development')]
 lint:
     uv run --all-groups deptry .
+    uv run vulture
     uv run ruff format --check --output-format {{ ruff_format }} .
     uv run ruff check --output-format {{ ruff_format }} .
 

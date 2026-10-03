@@ -93,7 +93,7 @@ The first command installs every dependency group, including the development too
 | `test`                     | Run the unit tests, which need no Docker.                           |
 | `test-cov`                 | Run the unit tests with a coverage report and the 90% floor.        |
 | `test-integration`         | Run the integration tests against the running stack.                |
-| `check`                    | Run the lint, formatting, dependency and type checks.               |
+| `check`                    | Run the lint, formatting, dependency, dead-code and type checks.    |
 | `reformat`                 | Reformat the code and sort the imports.                             |
 | `docs`, `build-docs`       | Serve this documentation locally; build it, failing on any warning. |
 | `build-image`, `run-image` | Build the Docker image; run it, serving on port 8000.               |

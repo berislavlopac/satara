@@ -503,6 +503,15 @@ rather than leaving a stack without its queues.
 The script lives in `scripts/` beside the others. `compose.yaml` stays at the root, where
 `docker compose` finds it without options.
 
+### A check for code nothing uses
+
+Ruff reports unused imports and variables, but not a function or class nothing calls, and one
+such function sat unused in `common/` through two reviews. Vulture now runs with the lint
+checks, in the hooks and in CI. Frameworks call some of our code without our code doing so, so
+its settings ignore the decorators and names they use, and an allow-list file names the few
+attributes and methods that only a library reads or calls, each with what uses it. A new hook
+of that kind needs a line there; the check names it when it fails.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.

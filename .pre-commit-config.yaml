@@ -23,7 +23,7 @@ repos:
   - repo: local
     hooks:
       - id: lint
-        name: lint (deptry, ruff format --check, ruff check)
+        name: lint (deptry, vulture, ruff format --check, ruff check)
         entry: uv run just lint
         language: system
         pass_filenames: false
