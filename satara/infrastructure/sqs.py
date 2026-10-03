@@ -39,10 +39,8 @@ class SQSMessageQueue:
         return [
             QueueMessage(
                 body=message.get("Body", ""),
-                receipt=message["ReceiptHandle"],
-                receive_count=int(
-                    message.get("Attributes", {}).get("ApproximateReceiveCount", "1")
-                ),
+                handle=message["ReceiptHandle"],
+                attempt=int(message.get("Attributes", {}).get("ApproximateReceiveCount", "1")),
             )
             for message in response.get("Messages", [])
         ]
@@ -50,11 +48,11 @@ class SQSMessageQueue:
     async def delete(self, message: QueueMessage) -> None:
         """Delete the message, so that it is not delivered again."""
         await self._client.delete_message(
-            QueueUrl=self._queue_url, ReceiptHandle=message.receipt
+            QueueUrl=self._queue_url, ReceiptHandle=message.handle
         )
 
     async def read_max_attempts(self) -> int | None:
-        """Return the receives after which the queue's redrive policy sets a message aside."""
+        """Return the attempts after which the queue's redrive policy sets a message aside."""
         response = await self._client.get_queue_attributes(
             QueueUrl=self._queue_url, AttributeNames=["RedrivePolicy"]
         )

@@ -16,7 +16,7 @@ dead_letter_arn=$(aws sqs get-queue-attributes --queue-url "$dead_letter_url" \
     --attribute-names QueueArn --query Attributes.QueueArn --output text)
 
 # A message stays hidden for 30 minutes once received, long enough for a build, and moves to
-# the dead-letter queue after three receives without being deleted.
+# the dead-letter queue after three attempts without being deleted.
 cat > /tmp/queue.json <<JSON
 {
   "VisibilityTimeout": "1800",

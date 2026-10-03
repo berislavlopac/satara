@@ -10,10 +10,10 @@ class QueueMessage(FrozenModel):
 
     body: str
     """The message's content."""
-    receipt: str
-    """What deletes this receipt of the message."""
-    receive_count: int
-    """How many times the message has been received, this time included."""
+    handle: str
+    """What the queue needs to delete this delivery of the message."""
+    attempt: int
+    """Which attempt at handling the message this delivery is, counting from 1."""
 
 
 class MessageQueue(Protocol):
@@ -31,9 +31,9 @@ class MessageQueue(Protocol):
         ...
 
     async def read_max_attempts(self) -> int | None:
-        """Return how many times a message is received before the queue sets it aside.
+        """Return how many attempts a message gets before the queue sets it aside.
 
         Returns:
-            The number of receives, or `None` if the queue keeps delivering a message.
+            The number of attempts, or `None` if the queue keeps delivering a message.
         """
         ...
