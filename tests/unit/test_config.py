@@ -32,3 +32,22 @@ def test_settings_refuse_a_limit_of_zero(monkeypatch, name):
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+@pytest.mark.parametrize(
+    ("name", "value"), [("MAX_FILES", "1001"), ("MAX_FILE_SIZE", "2001MiB")]
+)
+def test_settings_refuse_a_limit_above_the_highest_allowed(monkeypatch, name, value):
+    monkeypatch.setenv(f"SATARA_{name}", value)
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_accept_limits_at_the_highest_allowed(monkeypatch):
+    monkeypatch.setenv("SATARA_MAX_FILES", "1000")
+    monkeypatch.setenv("SATARA_MAX_FILE_SIZE", "2000MiB")
+
+    settings = Settings(_env_file=None)
+
+    assert (settings.MAX_FILES, settings.MAX_FILE_SIZE) == (1000, 2000 * MIB)
