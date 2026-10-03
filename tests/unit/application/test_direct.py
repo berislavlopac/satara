@@ -60,56 +60,58 @@ async def test_archive_files_turns_uploaded_files_into_a_named_archive(
     assert data == b"notes1,2"
 
 
-def test_archive_files_refuses_an_empty_request(service, build_archive_files_command):
-    command = build_archive_files_command()
-
-    with pytest.raises(NoFilesError):
-        service.archive_files(command)
-
-
-def test_archive_files_refuses_more_files_than_the_limit(service, build_archive_files_command):
-    command = build_archive_files_command(*[(f"{i}.txt", b"x") for i in range(4)])
-
-    with pytest.raises(TooManyFilesError):
-        service.archive_files(command)
-
-
-def test_archive_files_accepts_as_many_files_as_the_limit(
-    service, build_archive_files_command, recording_writer
+@pytest.mark.parametrize(
+    ("files", "archive_name", "error"),
+    [
+        ([], None, NoFilesError),
+        ([(f"{i}.txt", b"x") for i in range(4)], None, TooManyFilesError),
+        ([("small.txt", b"x"), ("large.txt", b"x" * 11)], None, FileTooLargeError),
+        ([(f"{i}.txt", b"x" * 9) for i in range(3)], None, TotalTooLargeError),
+        ([("", b"x")], None, InvalidFileNameError),
+        ([("..", b"x")], None, InvalidFileNameError),
+        ([("dir/..", b"x")], None, InvalidFileNameError),
+        ([("dir\\..", b"x")], None, InvalidFileNameError),
+        ([("a\x00.txt", b"x")], None, InvalidFileNameError),
+        ([("a.txt", b"a")], "../report", InvalidArchiveNameError),
+    ],
+    ids=[
+        "no files",
+        "too many files",
+        "a file too large",
+        "too large together",
+        "an empty file name",
+        "a parent directory as file name",
+        "a path ending in a parent directory",
+        "a Windows path ending in a parent directory",
+        "a control character in a file name",
+        "an unusable archive name",
+    ],
+)
+def test_archive_files_refuses_files_it_cannot_archive(
+    service, build_archive_files_command, files, archive_name, error
 ):
-    command = build_archive_files_command(*[(f"{i}.txt", b"x") for i in range(3)])
+    command = build_archive_files_command(*files, archive_name=archive_name)
+
+    with pytest.raises(error):
+        service.archive_files(command)
+
+
+@pytest.mark.parametrize(
+    ("files", "expected"),
+    [
+        ([(f"{i}.txt", b"x") for i in range(3)], ["0.txt", "1.txt", "2.txt"]),
+        ([("exact.txt", b"x" * 10)], ["exact.txt"]),
+    ],
+    ids=["as many files as the limit", "a file as large as the limit"],
+)
+def test_archive_files_accepts_files_at_its_limits(
+    service, build_archive_files_command, recording_writer, files, expected
+):
+    command = build_archive_files_command(*files)
 
     service.archive_files(command)
 
-    assert list_entry_names(recording_writer.archive) == ["0.txt", "1.txt", "2.txt"]
-
-
-def test_archive_files_refuses_a_file_larger_than_the_limit(
-    service, build_archive_files_command
-):
-    command = build_archive_files_command(("small.txt", b"x"), ("large.txt", b"x" * 11))
-
-    with pytest.raises(FileTooLargeError):
-        service.archive_files(command)
-
-
-def test_archive_files_accepts_a_file_as_large_as_the_limit(
-    service, build_archive_files_command, recording_writer
-):
-    command = build_archive_files_command(("exact.txt", b"x" * 10))
-
-    service.archive_files(command)
-
-    assert list_entry_names(recording_writer.archive) == ["exact.txt"]
-
-
-def test_archive_files_refuses_files_larger_together_than_the_limit(
-    service, build_archive_files_command
-):
-    command = build_archive_files_command(*[(f"{i}.txt", b"x" * 9) for i in range(3)])
-
-    with pytest.raises(TotalTooLargeError):
-        service.archive_files(command)
+    assert list_entry_names(recording_writer.archive) == expected
 
 
 def test_archive_files_keeps_only_the_base_name_of_each_file(
@@ -132,20 +134,6 @@ def test_archive_files_renames_files_whose_base_names_collide(
     service.archive_files(command)
 
     assert list_entry_names(recording_writer.archive) == ["x.txt", "x-2.txt"]
-
-
-@pytest.mark.parametrize(
-    "name",
-    ["", "..", "dir/..", "dir\\..", "a\x00.txt"],
-    ids=["empty", "parent directory", "slash", "backslash", "control character"],
-)
-def test_archive_files_refuses_a_file_without_a_usable_name(
-    service, build_archive_files_command, name
-):
-    command = build_archive_files_command((name, b"x"))
-
-    with pytest.raises(InvalidFileNameError):
-        service.archive_files(command)
 
 
 def test_archive_files_reads_no_content_until_the_archive_is_read(
@@ -188,10 +176,3 @@ def test_archive_files_adds_the_suffix_even_to_a_name_ending_with_it(
     result = service.archive_files(command)
 
     assert result.file_name == "report.recorded.recorded"
-
-
-def test_archive_files_refuses_an_unusable_archive_name(service, build_archive_files_command):
-    command = build_archive_files_command(("a.txt", b"a"), archive_name="../report")
-
-    with pytest.raises(InvalidArchiveNameError):
-        service.archive_files(command)
