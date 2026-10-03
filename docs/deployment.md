@@ -11,7 +11,7 @@ The image holds the service and its queue consumer, which run as separate proces
 | The service  | `uvicorn --factory satara.wiring:create_app --host 0.0.0.0 --port 8000`, the image's default | Both flows             |
 | The consumer | `python scripts/consumer.py`                                                                 | The deferred flow only |
 
-Both take the same [configuration](configuration.md). The consumer needs no `SATARA_STORAGE_PUBLIC_URL`, as it signs no URLs.
+Both take the same [configuration](configuration.md). The consumer needs no `SATARA_STORAGE_PUBLIC_URL`, as it signs no URLs. The package is not installed, so the image puts it on the import path with `PYTHONPATH=/app`; run outside the image, the consumer's script needs `PYTHONPATH` set to the repository's root, as well as the AWS variables.
 
 The image is built in two stages: the first installs the locked runtime dependencies, and the second holds only those, the service's code and the consumer's script, without the build tools or the tests. Both processes run as an unprivileged user and finish cleanly on a stop signal.
 

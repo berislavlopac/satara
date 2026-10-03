@@ -1,6 +1,16 @@
 # Getting started
 
-Running the service needs [Docker](https://docs.docker.com/get-docker/). The `just` recipes below also need [uv](https://docs.astral.sh/uv/), which brings `just` with the project's development tools: run them as `uv run just <recipe>`, or drop the `uv run` with `just` installed.
+## Requirements
+
+| Tool                 | Needed for                                        | Installing it                                                                                                                               |
+|----------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| Docker, with Compose | Running the service and the whole stack           | [Get Docker](https://docs.docker.com/get-docker/); Docker Desktop includes Compose, and on Linux it is the `docker-compose-plugin` package. |
+| uv                   | The `just` recipes, and development               | [Installing uv](https://docs.astral.sh/uv/getting-started/installation/)                                                                    |
+| just                 | Optional: the recipes without the `uv run` prefix | [Installing just](https://just.systems/man/en/installation.html); uv also brings it with the project's development tools.                   |
+| curl                 | Calling the API by hand                           | Usually present; otherwise [curl's downloads](https://curl.se/download.html).                                                               |
+| Python 3.10 or later | The client script, without uv                     | Usually present; otherwise [Python's downloads](https://www.python.org/downloads/).                                                         |
+
+The service itself runs in the containers, on Python 3.14, with everything it needs inside its image. uv installs that Python for development if it is not already present. With uv alone, run the recipes as `uv run just <recipe>`; with `just` installed, drop the `uv run`.
 
 ## Run the service on its own
 
