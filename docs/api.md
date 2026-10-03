@@ -62,13 +62,27 @@ exception noted below.
 
 | Status | Reason                                                                         |
 |--------|--------------------------------------------------------------------------------|
-| 413    | More files than the limit allows.                                               |
+| 400    | A form the form parser cannot read, such as one without its boundary.          |
+| 400    | More than 1000 files, or more than 1000 other fields.                          |
+| 400    | A field other than a file larger than 1 MiB.                                   |
+| 413    | More files than the limit allows.                                              |
 | 413    | A file larger than the limit for a single file.                                |
 | 413    | A request body larger than the limit for the whole request.                    |
 | 422    | No files.                                                                      |
 | 422    | A file whose name is empty, `.` or `..` once its directories are dropped.      |
 | 422    | A file whose name holds a control character.                                   |
 | 422    | An archive name that breaks the rules above.                                   |
+
+For 400 and 413, `detail` is a string. For 422, it is a list of errors in the form the web
+framework uses for its own validation, each naming the field at fault in `loc`:
+
+```json
+{
+  "detail": [
+    {"type": "value_error", "loc": ["body", "files"], "msg": "'..' is not a usable file name"}
+  ]
+}
+```
 
 The limits are set in the [configuration](operations.md#configuration).
 

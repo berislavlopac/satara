@@ -55,14 +55,14 @@ own `foo-2.txt` is the one renamed.
 The limits are settings: file count, size of a single file, and total size, starting at 100
 files, 50 MiB and 200 MiB.
 
-The upload parser writes every file to temporary storage before the endpoint runs, and it
-limits only the number of files and fields, not their size. A total-size limit checked inside
-the endpoint would come after the whole upload is already on disk. So the total size is
-enforced while the request body arrives, by Starlette's middleware (see 2026-10-02): a request
-whose `Content-Length` already exceeds it is refused at once, and any other is refused as soon
-as the bytes read pass it. Both are refused with 413. The other limits are checked in the
-application service, where the total-size limit already bounds the cost of a request that
-breaks them.
+The upload parser writes every file to temporary storage before the endpoint runs. It limits
+the number of files and fields and the size of each field other than a file, but not the size
+of a file. A total-size limit checked inside the endpoint would come after the whole upload is
+already on disk. So the total size is enforced while the request body arrives, by Starlette's
+middleware (see 2026-10-02): a request whose `Content-Length` already exceeds it is refused at
+once, and any other is refused as soon as the bytes read pass it. Both are refused with 413.
+The other limits are checked in the application service, where the total-size limit already
+bounds the cost of a request that breaks them.
 
 ### The direct flow streams its response
 
@@ -227,9 +227,9 @@ the archive unchanged, so any other character the format alters would show up th
 
 Names that differ only in letter case, or only in how Unicode spells the same character (an
 accented letter as one character, or as a letter followed by a combining accent), count as the
-same name, so the second is renamed.
-The renaming rule exists so that extracting an archive replaces no file, and the default file
-systems of macOS and Windows treat such names as one. Each file keeps its own spelling.
+same name, so the second is renamed. The renaming rule exists so that extracting an archive
+replaces no file, and the default file systems of macOS and Windows treat such names as one.
+Each file keeps its own spelling.
 
 ### No limit on the length of a file name
 
@@ -248,6 +248,14 @@ Two limits are capped, so that a setting cannot promise what the service cannot 
   which allow a file of up to 2 GiB, compressed or not. A larger file would fail after the
   response had started, cutting the download short. The margin covers compression, which
   makes a file that does not compress slightly larger.
+
+### Every 422 has the web framework's form
+
+A request without files is refused by the web framework's own validation, with a `detail` that
+lists the errors and names the field at fault. The service's own 422s, for an unusable file or
+archive name, gave `detail` as a string, and OpenAPI can describe only one body per status. So
+the service answers its own 422s through the framework's validation handler, and every 422 has
+one form. The 400 and 413 refusals keep a string `detail`.
 
 ## Build order for the direct flow
 

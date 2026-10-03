@@ -115,7 +115,15 @@ def test_archive_files_refuses_a_file_without_a_usable_name(client):
     response = client.post("/archive-files", files=files)
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
-    assert response.json() == {"detail": "'..' is not a usable file name"}
+    assert response.json() == {
+        "detail": [
+            {
+                "type": "value_error",
+                "loc": ["body", "files"],
+                "msg": "'..' is not a usable file name",
+            }
+        ]
+    }
 
 
 def test_archive_files_quotes_a_refused_file_name_as_it_was_sent(client):
@@ -123,7 +131,7 @@ def test_archive_files_quotes_a_refused_file_name_as_it_was_sent(client):
 
     response = client.post("/archive-files", files=files)
 
-    assert response.json() == {"detail": "'.' is not a usable file name"}
+    assert response.json()["detail"][0]["msg"] == "'.' is not a usable file name"
 
 
 def test_archive_files_refuses_an_unusable_archive_name(client):
@@ -132,13 +140,39 @@ def test_archive_files_refuses_an_unusable_archive_name(client):
     response = client.post("/archive-files", files=files, data={"name": "../report"})
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
-    assert response.json() == {"detail": "'../report' is not a usable archive name"}
+    assert response.json() == {
+        "detail": [
+            {
+                "type": "value_error",
+                "loc": ["body", "name"],
+                "msg": "'../report' is not a usable archive name",
+            }
+        ]
+    }
 
 
 def test_archive_files_refuses_a_request_without_files(client):
     response = client.post("/archive-files", data={"name": "report"})
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
+    assert response.json()["detail"][0]["loc"] == ["body", "files"]
+
+
+def test_archive_files_refuses_a_form_the_parser_cannot_read(client):
+    headers = {"content-type": "multipart/form-data"}
+
+    response = client.post("/archive-files", content=b"x", headers=headers)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {"detail": "Missing boundary in multipart."}
+
+
+def test_openapi_describes_every_answer_archive_files_gives(client):
+    response = client.get("/openapi.json")
+
+    answers = response.json()["paths"]["/archive-files"]["post"]["responses"]
+    assert set(answers) == {"200", "400", "413", "422"}
+    assert set(answers["200"]["content"]) == {"application/zip"}
 
 
 def test_health_check_answers_that_the_service_is_up(client):
