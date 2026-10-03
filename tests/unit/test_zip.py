@@ -9,7 +9,7 @@ from hypothesis import given, strategies as st
 from pydantic import ValidationError
 
 from satara.domain import Archive, EntryName
-from satara.infrastructure import ZipArchiveWriter
+from satara.infrastructure.zip import ZipArchiveWriter
 
 
 @pytest.fixture(scope="session")

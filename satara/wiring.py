@@ -6,7 +6,7 @@ from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 from satara.application.base import Limits, UploadRejectedError
 from satara.application.direct import ArchiveService
 from satara.config import Settings
-from satara.infrastructure import ZipArchiveWriter
+from satara.infrastructure.zip import ZipArchiveWriter
 from satara.presentation import handle_upload_rejected, router
 
 
