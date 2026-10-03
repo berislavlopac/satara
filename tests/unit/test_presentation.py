@@ -167,7 +167,7 @@ def test_archive_files_refuses_a_form_the_parser_cannot_read(client):
     assert response.json() == {"detail": "Missing boundary in multipart."}
 
 
-def test_openapi_describes_every_answer_archive_files_gives(client):
+def test_OpenAPI_lists_every_answer_archive_files_gives(client):
     response = client.get("/openapi.json")
 
     answers = response.json()["paths"]["/archive-files"]["post"]["responses"]

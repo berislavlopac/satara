@@ -49,7 +49,7 @@ class ZipArchiveWriter:
 
     Every file is dated with the time, in UTC, the archive was written. Compression runs in a
     worker thread, one chunk at a time, so it does not hold up other requests. Files are written
-    without ZIP64 extensions, which limits a single file to 2 GiB.
+    without ZIP64 extensions, and without them the ZIP library writes a file of at most 2 GiB.
     """
 
     media_type = "application/zip"

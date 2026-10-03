@@ -29,9 +29,10 @@ The response has no `Content-Length`: its size is not known until the archive is
 it is sent in chunks. Every check is made before the first byte is sent. A failure after that,
 such as a file that cannot be read, can only cut the connection.
 
-Each file is compressed with deflate. The archive is written without the ZIP64 extensions, so
-a file must stay under 2 GiB even after compression, and compression makes a file that does not
-compress slightly larger. The limit for a single file can therefore be set to at most 2000 MiB.
+Each file is compressed with deflate. The archive is written without the ZIP64 extensions,
+and without them the ZIP library writes a file of at most 2 GiB, measured both before and after
+compression. Compression makes a file that does not compress slightly larger, so the limit for
+a single file can be set to at most 2000 MiB.
 
 ### File names in the archive
 
@@ -42,8 +43,8 @@ compress slightly larger. The limit for a single file can therefore be set to at
   before the first dot, ignoring a dot at the very start: a second `report.tar.gz` becomes
   `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`.
 - Names that differ only in letter case or Unicode form count as the same name, because the
-  default file systems of macOS and Windows treat them as one: `Report.txt` and `report.txt`
-  become `Report.txt` and `report-2.txt`.
+  default file system of macOS treats them as one, and that of Windows ignores letter case:
+  `Report.txt` and `report.txt` become `Report.txt` and `report-2.txt`.
 - No file is dropped, and files keep the order in which they were sent.
 
 ### The archive's name
