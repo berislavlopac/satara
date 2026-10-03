@@ -1,6 +1,6 @@
 [project]
 name = "satara"
-version = "0.1.0"
+version = "0.2.0"
 description = "A service that packs uploaded files into a ZIP archive."
 readme = "README.md"
 authors = [
