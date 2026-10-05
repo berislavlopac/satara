@@ -58,7 +58,9 @@ Every decision is recorded, as it was made, in [DECISIONS.md](DECISIONS.md), inc
 | 1. File-zipping REST API   | `POST /archive-files`, and `/archives` for larger archives; see [API](docs/api.md). |
 | 2. Containerisation        | The `Dockerfile`; see [Getting started](docs/getting-started.md).                   |
 | 3. CI/CD pipeline          | GitHub Actions; see [CI and quality checks](docs/ci.md).                            |
-| 4. AI-assisted development | [AI-assisted development](docs/ai-assisted-development.md).                         |
+| 4. AI-assisted development | [AI-ASSISTED-DEVELOPMENT.md](AI-ASSISTED-DEVELOPMENT.md).                           |
+
+That document describes the author's general practice of developing software with AI assistance, not only how this project was built.
 
 ### Main trade-offs
 
