@@ -23,7 +23,7 @@ The deferred flow is off unless switched on, and then needs storage and a queue,
 | Variable                         | Default                                | Setting                                                           |
 |----------------------------------|----------------------------------------|-------------------------------------------------------------------|
 | `SATARA_DEFERRED_ENABLED`        | `false`                                | Whether `/archives` is served.                                    |
-| `SATARA_DEFERRED_MAX_FILES`      | 1000                                   | The most files one archive may hold.                              |
+| `SATARA_DEFERRED_MAX_FILES`      | 1000                                   | The most files one archive may hold; at most 10,000.              |
 | `SATARA_DEFERRED_MAX_FILE_SIZE`  | 5 GiB                                  | The largest file; at most 5 GiB, the most one upload to S3 takes. |
 | `SATARA_DEFERRED_MAX_TOTAL_SIZE` | 50 GiB                                 | The largest total size of an archive's files; at most 150 GiB.    |
 | `SATARA_BUCKET`                  | `satara-archive-deferred-flow-storage` | The bucket that holds the archives.                               |
