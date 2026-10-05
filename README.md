@@ -53,14 +53,12 @@ Every decision is recorded, as it was made, in [DECISIONS.md](DECISIONS.md), inc
 
 ### How the tasks are met
 
-| Task                       | Where                                                                               |
-|----------------------------|-------------------------------------------------------------------------------------|
-| 1. File-zipping REST API   | `POST /archive-files`, and `/archives` for larger archives; see [API](docs/api.md). |
-| 2. Containerisation        | The `Dockerfile`; see [Getting started](docs/getting-started.md).                   |
-| 3. CI/CD pipeline          | GitHub Actions; see [CI and quality checks](docs/ci.md).                            |
-| 4. AI-assisted development | [AI-ASSISTED-DEVELOPMENT.md](AI-ASSISTED-DEVELOPMENT.md).                           |
-
-That document describes the author's general practice of developing software with AI assistance, not only how this project was built.
+| Task                       | Where                                                                                                           |
+|----------------------------|-----------------------------------------------------------------------------------------------------------------|
+| 1. File-zipping REST API   | `POST /archive-files`, and `/archives` for larger archives; see [API](docs/api.md).                             |
+| 2. Containerisation        | The `Dockerfile`; see [Getting started](docs/getting-started.md).                                               |
+| 3. CI/CD pipeline          | GitHub Actions; see [CI and quality checks](docs/ci.md).                                                        |
+| 4. AI-assisted development | [AI-ASSISTED-DEVELOPMENT.md](AI-ASSISTED-DEVELOPMENT.md): the author's general practice, not only this project. |
 
 ### Main trade-offs
 
@@ -69,7 +67,7 @@ That document describes the author's general practice of developing software wit
 - **A second flow for large archives.** The brief asks for one endpoint; the deferred flow is an addition, switched off by default so the image still runs on its own. Files go straight to storage, and the service never carries their bytes, so its limits are far higher: 1000 files, 5 GiB each and 50 GiB in all by default. The cost is the moving parts: a bucket, a queue, a consumer, and a client that makes several requests rather than one.
 - **The bucket as the only state.** Each archive is a manifest written once, and its progress is read from the objects that exist, so nothing is updated in place and no database is needed. A database could take the manifests' place behind the same port.
 - **A queue over a webhook.** A queue keeps a message until the consumer deletes it after the build, so a crash means the build is tried again. A webhook would keep the flow to one service, but its sender forgets the event once answered, so a crash during a build would lose it.
-- **A simple consumer.** One consumer handles one batch at a time, which rules out building an archive twice without a lock. The queue hides a received message for 30 minutes rather than the consumer extending it during a build, so a retry, after a crash or a failed attempt, waits that long.
+- **A simple consumer.** One consumer handles one batch at a time, which rules out building an archive twice without a lock. The queue hides a received message for a long time, 30 minutes in the local stack, rather than the consumer extending it during a build, so a retry, after a crash or a failed attempt, waits that long.
 - **Names over content.** A file is identified by its base name. A name already taken is renamed rather than dropped or overwritten, and nothing is deduplicated by content, so two identical files take space twice. Some edge cases are tolerated rather than covered by further rules: a requested archive name of `report.zip` becomes `report.zip.zip`.
 - **An archive name of the client's choosing.** The brief does not ask for it; it is an addition, limited to ASCII so it fits a response header without encoding.
 - **Existing parts over our own.** The request body limit is Starlette's own middleware. The cost is that its two refusals differ in form, one in plain text and one in JSON.
