@@ -1,6 +1,6 @@
 # Git hooks, run by prek. Install them once with `uv run prek install`.
 #
-# The checks call the same just recipes as CI. The tests run only in CI.
+# The lint and type checks call the same just recipes as CI. The tests run only in CI.
 
 # `prek install` installs every hook type listed here, so the sync hook below is wired too.
 default_install_hook_types: [pre-commit, post-checkout, post-merge]
