@@ -1,8 +1,8 @@
 name: Integration tests
 
-# The integration tests start the whole local stack, which takes about a minute, so they run
-# only when something they exercise changes: the code, the scripts, the image, the stack, the
-# dependencies, the recipes, or the tests and this workflow themselves.
+# Runs the integration tests against the whole local stack, when something they exercise
+# changes: the code, the scripts, the image, the stack, the dependencies, the recipes, or the
+# tests and this workflow themselves.
 on:
   pull_request:
     branches: [main]

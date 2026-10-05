@@ -52,8 +52,7 @@ default-groups = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-# Integration tests need a live service and run separately; they are not measured, because
-# the coverage floor is the unit suite's to hold.
+# Integration tests need a live service and run separately, outside the coverage measurement.
 testpaths = ["tests/unit"]
 markers = [
     "integration: runs against a live external service (e.g. the local compose stack); not part of the unit suite.",
@@ -70,9 +69,8 @@ fail_under = 90
 exclude_also = ["pragma: no cover", "@abstract"]
 
 [tool.pyrefly]
-# The package, its scripts and the test doubles. Tests themselves are not type-checked: they prove
-# themselves by running, and annotating them invites a fight with every double and mock. The
-# doubles are checked so that they cannot drift from the protocols they stand in for.
+# The package, its scripts and the test doubles, which are checked against the protocols they
+# stand in for. Tests themselves are not type-checked.
 project-includes = ["satara/**/*.py", "scripts/**/*.py", "tests/unit/fakes.py"]
 
 [tool.ruff]
