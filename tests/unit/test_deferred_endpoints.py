@@ -68,11 +68,22 @@ def test_create_archive_refuses_files_over_the_limit(client):
 def test_create_archive_refuses_a_body_larger_than_its_declarations_need(client):
     """Refuses it before parsing it, allowing a body of 1 KiB for each file allowed.
 
-    One file with a long name keeps within every other limit, so only the body's size refuses.
+    Whitespace pads a valid declaration past the limit, so only the body's size refuses.
     """
-    files = [{"name": "a" * 4000 + ".txt", "size": 1}]
+    body = json.dumps({"files": [{"name": "a.txt", "size": 1}]}) + " " * 4000
+    headers = {"Content-Type": "application/json"}
 
-    response = client.post("/archives", json={"files": files})
+    response = client.post("/archives", content=body, headers=headers)
+
+    assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
+
+
+def test_create_archive_keeps_its_body_limit_when_served_under_a_path_prefix(client):
+    prefixed = TestClient(client.app, root_path="/api")
+    body = json.dumps({"files": [{"name": "a.txt", "size": 1}]}) + " " * 4000
+    headers = {"Content-Type": "application/json"}
+
+    response = prefixed.post("/api/archives", content=body, headers=headers)
 
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
 

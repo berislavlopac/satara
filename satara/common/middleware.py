@@ -21,5 +21,7 @@ class PathBodyLimitMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Pass the request on, through the limit if it is for the path."""
-        is_limited = scope["type"] == "http" and scope["path"] == self._path
+        # The path includes the prefix the application is served under, if any.
+        path = scope.get("path", "").removeprefix(scope.get("root_path", ""))
+        is_limited = scope["type"] == "http" and path == self._path
         await (self._limited if is_limited else self._app)(scope, receive, send)
