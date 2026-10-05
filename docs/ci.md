@@ -2,12 +2,12 @@
 
 The lint, formatting, dependency, dead-code and type checks run in two places, through the same `just` recipes and the same locked tool versions. The file hygiene checks run only as hooks.
 
-| Where                             | When                                                                               | What                                                                                  |
-|-----------------------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| Git hooks, run by prek            | Before each commit                                                                 | File hygiene, then the lint, formatting, dependency, dead-code and type checks.       |
-| GitHub Actions, `ci.yml`          | Every pull request and push to `main`                                              | The lint and type checks, then the unit tests with the coverage floor, and the image. |
-| GitHub Actions, `integration.yml` | Pull requests and pushes to `main` that change what the integration tests exercise | The integration tests.                                                                |
-| GitHub Actions, `docs.yml`        | Changes to the documentation                                                       | This documentation, built with every warning treated as an error.                     |
+| Where                             | When                                                                               | What                                                                                                                     |
+|-----------------------------------|------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| Git hooks, run by prek            | Before each commit                                                                 | File hygiene, then the lint, formatting, dependency, dead-code and type checks.                                          |
+| GitHub Actions, `ci.yml`          | Every pull request and push to `main`                                              | The lint, formatting, dependency, dead-code and type checks, then the unit tests with the coverage floor, and the image. |
+| GitHub Actions, `integration.yml` | Pull requests and pushes to `main` that change what the integration tests exercise | The integration tests.                                                                                                   |
+| GitHub Actions, `docs.yml`        | Changes to the documentation                                                       | This documentation, built with every warning treated as an error.                                                        |
 
 The hooks catch problems before a commit exists, but they can be skipped or never installed; CI cannot. The tests run only in CI, since slow hooks get skipped.
 
