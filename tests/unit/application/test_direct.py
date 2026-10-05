@@ -72,6 +72,8 @@ async def test_archive_files_turns_uploaded_files_into_a_named_archive(
         ([("dir/..", b"x")], None, InvalidFileNameError),
         ([("dir\\..", b"x")], None, InvalidFileNameError),
         ([("a\x00.txt", b"x")], None, InvalidFileNameError),
+        ([("a" * 256, b"x")], None, InvalidFileNameError),
+        ([("\u00e9" * 128, b"x")], None, InvalidFileNameError),
         ([("a.txt", b"a")], "../report", InvalidArchiveNameError),
     ],
     ids=[
@@ -84,6 +86,8 @@ async def test_archive_files_turns_uploaded_files_into_a_named_archive(
         "a path ending in a parent directory",
         "a Windows path ending in a parent directory",
         "a control character in a file name",
+        "a file name over 255 bytes",
+        "a file name over 255 bytes in two-byte characters",
         "an unusable archive name",
     ],
 )
@@ -134,6 +138,18 @@ def test_archive_files_renames_files_whose_base_names_collide(
     service.archive_files(command)
 
     assert list_entry_names(recording_writer.archive) == ["x.txt", "x-2.txt"]
+
+
+def test_archive_files_numbers_a_copy_of_a_255_byte_name_past_the_limit(
+    service, build_archive_files_command, recording_writer
+):
+    """Adds the number without shortening the name, as the limit applies to names as sent."""
+    name = "a" * 251 + ".txt"
+    command = build_archive_files_command((f"dir/{name}", b"1"), (name, b"2"))
+
+    service.archive_files(command)
+
+    assert list_entry_names(recording_writer.archive) == [name, "a" * 251 + "-2.txt"]
 
 
 def test_archive_files_reads_no_content_until_the_archive_is_read(
