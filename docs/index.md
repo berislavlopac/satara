@@ -17,6 +17,6 @@ It is a FastAPI application and a queue consumer, both run from one Docker image
 - [CI and quality checks](ci.md): the checks before each commit and in CI, and how dependencies are kept current.
 - [Architecture](architecture.md): the layers of the code, the ports, and how each flow runs through them.
 - [AI-assisted development](ai-assisted-development.md): how the author develops software with
-  AI assistance, in general; written as the answer to the brief's fourth task.
-- [The exercise](exercise.md): the take-home exercise this service was written for, its
-  trade-offs and next steps.
+  AI assistance, in general; written as the answer to the fourth task of the take-home exercise
+  this service was written for, which [the README](https://github.com/berislavlopac/satara#decisions-and-trade-offs)
+  describes.
