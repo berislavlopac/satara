@@ -21,7 +21,10 @@ class PathBodyLimitMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Pass the request on, through the limit if it is for the path."""
-        # The path includes the prefix the application is served under, if any.
-        path = scope.get("path", "").removeprefix(scope.get("root_path", ""))
+        path, root_path = scope.get("path", ""), scope.get("root_path", "")
+        # The path includes the prefix the application is served under, if any; the prefix is
+        # removed only where it ends at a segment boundary, as the router does.
+        if root_path and path.startswith(f"{root_path}/"):
+            path = path.removeprefix(root_path)
         is_limited = scope["type"] == "http" and path == self._path
         await (self._limited if is_limited else self._app)(scope, receive, send)

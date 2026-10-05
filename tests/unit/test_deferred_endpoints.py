@@ -78,12 +78,19 @@ def test_create_archive_refuses_a_body_larger_than_its_declarations_need(client)
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
 
 
-def test_create_archive_keeps_its_body_limit_when_served_under_a_path_prefix(client):
-    prefixed = TestClient(client.app, root_path="/api")
+@pytest.mark.parametrize(
+    ("root_path", "path"),
+    [("/api", "/api/archives"), ("/a", "/archives")],
+    ids=["a path holding the prefix", "a path the prefix only begins"],
+)
+def test_create_archive_keeps_its_body_limit_when_served_under_a_path_prefix(
+    client, root_path, path
+):
+    prefixed = TestClient(client.app, root_path=root_path)
     body = json.dumps({"files": [{"name": "a.txt", "size": 1}]}) + " " * 4000
     headers = {"Content-Type": "application/json"}
 
-    response = prefixed.post("/api/archives", content=body, headers=headers)
+    response = prefixed.post(path, content=body, headers=headers)
 
     assert response.status_code == HTTPStatus.CONTENT_TOO_LARGE
 
