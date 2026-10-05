@@ -148,9 +148,8 @@ def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected
 def test_archive_numbers_thousands_of_files_under_one_name_quickly(memory_content):
     """Adds each file in about the same time, however many share its name.
 
-    Trying every number from 2 for each file takes quadratic time: 3000 files took 16 seconds,
-    against a few hundredths with each name resuming from the last number tried. The bound
-    is loose, to fail only on the former.
+    The bound is loose: it fails only where each file's number is found by trying every number
+    from 2, which takes seconds for 3000 files.
     """
     archive = Archive()
     name = EntryName.model_validate("a.txt")

@@ -1,8 +1,7 @@
 name: Docs
 
-# Builds the documentation site on every change that could affect it, treating every warning as
-# an error: a broken link, or a page missing from the navigation, fails the build rather than
-# leaving the site quietly wrong. The site is only built, not published.
+# Builds the documentation site on every change that could affect it, failing on any warning,
+# such as a broken link or a page missing from the navigation.
 on:
   pull_request:
     branches: [main]

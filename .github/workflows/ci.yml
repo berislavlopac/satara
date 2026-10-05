@@ -1,7 +1,6 @@
 name: CI
 
-# Every pull request to main and every push to main is checked, whether or not the
-# contributor's hooks ran: hooks can be skipped or never installed, CI cannot.
+# Checks every pull request to main and every push to main.
 on:
   pull_request:
     branches: [main]
