@@ -41,12 +41,22 @@ class Content(Protocol):
         ...
 
 
+# The longest file name most file systems take, in bytes of UTF-8.
+_MAX_ENTRY_NAME_SIZE = 255
+
+
 def _check_single_name(value: str) -> str:
     # `PureWindowsPath` treats both `/` and `\` as separators, and a leading `C:` as a drive.
     if value in {"", ".", ".."} or PureWindowsPath(value).name != value:
         raise ValueError("Input should be a single file name")
     if any(unicodedata.category(char) == "Cc" for char in value):
         raise ValueError("Input should hold no control characters")
+    try:
+        size = len(value.encode())
+    except UnicodeEncodeError:
+        raise ValueError("Input should be valid Unicode text") from None
+    if size > _MAX_ENTRY_NAME_SIZE:
+        raise ValueError(f"Input should be at most {_MAX_ENTRY_NAME_SIZE} bytes in UTF-8")
     return value
 
 
@@ -54,7 +64,7 @@ class EntryName(ValueObject):
     """The name a file has inside an archive.
 
     It is a single, non-empty file name, such as `report.pdf`, with no path, drive or control
-    characters in it.
+    characters in it, and at most 255 bytes long in UTF-8.
     """
 
     value: Annotated[str, AfterValidator(_check_single_name)]
@@ -76,14 +86,18 @@ class EntryName(ValueObject):
         """Return this name with a number added, to tell it apart from a name already taken.
 
         The number goes before the first dot, ignoring a dot at the start of the name:
-        `foo.tar.gz` becomes `foo-2.tar.gz`, and `.bashrc` becomes `.bashrc-2`.
+        `foo.tar.gz` becomes `foo-2.tar.gz`, and `.bashrc` becomes `.bashrc-2`. Where the
+        number would make the name too long, the part before it is shortened to fit.
 
         Args:
             counter: The number to add.
         """
         extensions = "".join(PureWindowsPath(self.value).suffixes)
         stem = self.value.removesuffix(extensions)
-        return self.model_validate(f"{stem}-{counter}{extensions}")
+        suffix = f"-{counter}{extensions}"
+        while stem and len(f"{stem}{suffix}".encode()) > _MAX_ENTRY_NAME_SIZE:
+            stem = stem[:-1]
+        return self.model_validate(f"{stem}{suffix}")
 
 
 class ArchiveEntry(ValueObject):

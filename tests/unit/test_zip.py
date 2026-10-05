@@ -35,6 +35,7 @@ def read_back(data):
 file_names = st.text(
     alphabet=st.characters(categories=["L", "N"], include_characters=" .-_"),
     min_size=1,
+    max_size=60,
 ).filter(lambda value: value not in {".", ".."})
 files = st.lists(st.tuples(file_names, st.binary(max_size=1024)), max_size=10)
 

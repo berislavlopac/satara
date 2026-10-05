@@ -232,7 +232,7 @@ same name, so the second is renamed. The renaming rule exists so that extracting
 replaces no file. The default file system of macOS treats such names as one, and that of
 Windows ignores letter case. Each file keeps its own spelling.
 
-### No limit on the length of a file name
+### No limit on the length of a file name (replaced on 2026-10-05)
 
 A name longer than a file system allows, usually 255 bytes, is kept as it is. The archive holds
 it without trouble; only that one file fails to extract on the client's machine. A cap would
@@ -522,6 +522,18 @@ the workflow themselves. A change to the docs alone skips them. Running them onl
 was rejected, as they are the one check of the whole flow; caching the image's build was left
 out, as the build is already quick. A skipped workflow would block merging if it were a required
 check, which it is not.
+
+## 2026-10-05
+
+### File names are at most 255 bytes
+
+This replaces the decision of 2026-10-03 to leave the length of a file name unlimited. The ZIP
+format holds a name of at most 65,535 bytes, and the deferred flow's JSON body let a longer
+one through: the archive was created, every file uploaded, and each build then failed. A name
+that cannot be encoded as UTF-8 (a lone surrogate) failed when the manifest was written. Both
+are refused now, with the limit set at 255 bytes, the most file systems take, since a longer
+name would not extract on the client's machine anyway. Renaming shortens the part before the
+number where the number would take a name past the limit.
 
 ## Build order for the direct flow
 
