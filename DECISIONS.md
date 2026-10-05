@@ -535,6 +535,63 @@ are refused now, with the limit set at 255 bytes, the most file systems take, si
 name would not extract on the client's machine anyway. Renaming shortens the part before the
 number where the number would take a name past the limit.
 
+### The scripts are not tested
+
+The scripts in `scripts/` start the consumer, try the service from the command line and set
+up the local stack. They are tools for development and trying the service, so they have no
+tests of their own; the consumer the first one starts is tested.
+
+### Limits left for production
+
+A review on 2026-10-05, made as if the service were going to production, found the following.
+Each matters in production but not for this exercise, so each is recorded rather than fixed.
+
+- **An archive can stay pending for good.** Only the consumer writes the failure marker, and
+  only when an attempt it completes fails on the last delivery. If the consumer is killed
+  during that attempt (Docker waits 10 seconds after the stop signal, and the Compose file
+  sets no longer wait), if the check itself fails on a storage error, or if the upload URLs
+  expire before every file arrives, the status stays `pending`. A stop signal that arrives
+  during a receive also lets the batch received start a build. Remedies: check for the stop
+  signal before handling a batch and release what is left, wait longer before killing, work
+  out an expired state from the manifest's age, or have a reader of the dead-letter queue
+  write the marker.
+- **One consumer builds one archive at a time.** A large archive delays every other one
+  behind it, however small. Remedies: build several at once, up to a limit, or run several
+  consumers with a lock per archive.
+- **The archive ID is the only access control.** Whoever holds an ID can read the status, and
+  as each status call signs a new download URL and nothing is ever deleted, can download the
+  archive for as long as it exists: the URL lifetime limits one URL, not access to the
+  archive. The open endpoints also let anyone store files at the bucket owner's cost.
+  Remedies: authentication with an owner per archive, rate limits, expiry rules on the bucket,
+  and no new download URL after a fixed time from the build.
+- **A presigned URL lasts no longer than the credentials that signed it.** With temporary
+  credentials, such as a container role's, a URL stops working when they expire, usually
+  within hours, whatever lifetime up to seven days is configured. Remedies: document the
+  shorter effective limit, or sign with long-lived credentials.
+- **A failed attempt is retried only after the visibility timeout.** A message whose check
+  fails is left to reappear after 30 minutes, so one passing storage error delays the archive
+  by that much, and a failure is reported after about an hour. Remedy: on a failure that
+  will be retried, shorten the message's timeout to a short wait.
+- **The image trusts forwarded headers only from the local host.** Behind a load balancer
+  that terminates HTTPS, `status_url` and `Location` begin with `http://`. Remedy: make the
+  server's trusted proxy addresses configurable.
+- **The consumer's health check shows only that the process runs.** The heartbeat runs on a
+  thread of its own, so a stuck loop still looks healthy, and one error from the queue while
+  receiving or deleting ends the process, leaving recovery to the restart policy. Remedies:
+  touch the heartbeat from the loop, and retry the queue's errors after a wait.
+- **Names may hold Unicode format characters.** Only control characters are refused, so a
+  right-to-left override (U+202E) can make `invoice<U+202E>txt.exe` display as
+  `invoiceexe.txt`. Refusing the category is a policy choice.
+- **The client script saves the download under the name the server gives.** The service only
+  sends archive names of ASCII letters, digits, `-`, `_` and `.`, but pointed at another
+  server, the script would write wherever the `Content-Disposition` header says, directories
+  included. Remedy: keep only the base name.
+- **Images are pinned by tag, and the emulator is open to the network.** The Dockerfile and
+  the Compose file name images by tag, which can be moved, while CI's actions are pinned to
+  commits. Compose publishes the emulator, with its fixed credentials, on every interface of
+  the host. Remedies: pin images by digest, which Dependabot keeps current, and bind the
+  ports to `127.0.0.1`.
+
 ## Build order for the direct flow
 
 Each step is a separate, reviewed commit or small group of commits.
