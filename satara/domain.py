@@ -165,6 +165,8 @@ class Archive(Entity):
     """The entries, keyed by their folded names."""
     _received: set[str] = PrivateAttr(default_factory=set)
     """The folded names of the entries whose content has arrived."""
+    _next_counters: dict[str, int] = PrivateAttr(default_factory=dict)
+    """The number to try next when renaming a file, keyed by the folded name it was given."""
     _is_built: bool = PrivateAttr(default=False)
     """Whether the archive has been built."""
     _has_failed: bool = PrivateAttr(default=False)
@@ -222,10 +224,13 @@ class Archive(Entity):
             The entry as added. Its name differs from `name` if the file was renamed.
         """
         unique_name = name
-        counter = 2
+        # Entries are never removed, so a number found taken stays taken; resuming from the
+        # last one tried keeps adding many files under one name from taking quadratic time.
+        counter = self._next_counters.get(name.folded, 2)
         while unique_name in self:
             unique_name = name.with_counter(counter)
             counter += 1
+        self._next_counters[name.folded] = counter
         entry = ArchiveEntry(name=unique_name, size=size, content=content)
         self._entries[unique_name.folded] = entry
         return entry

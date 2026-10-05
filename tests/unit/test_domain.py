@@ -1,3 +1,4 @@
+import time
 from datetime import UTC, datetime
 from uuid import uuid4, uuid7
 
@@ -123,6 +124,24 @@ def test_archive_numbers_a_name_it_already_holds(memory_content, added, expected
         archive.add(EntryName.model_validate(value), 0, memory_content(b""))
 
     assert [str(entry.name) for entry in archive.entries] == expected
+
+
+def test_archive_numbers_thousands_of_files_under_one_name_quickly(memory_content):
+    """Adds each file in about the same time, however many share its name.
+
+    Trying every number from 2 for each file takes quadratic time: 3000 files took 16 seconds,
+    against a few hundredths with each name resuming from the last number tried. The bound
+    is loose, to fail only on the former.
+    """
+    archive = Archive()
+    name = EntryName.model_validate("a.txt")
+    start = time.perf_counter()
+
+    for _ in range(3000):
+        archive.add(name, 0, memory_content(b""))
+
+    assert time.perf_counter() - start < 1
+    assert str(archive.entries[-1].name) == "a-3000.txt"
 
 
 @given(names)
