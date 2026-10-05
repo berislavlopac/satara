@@ -56,8 +56,8 @@ extensions, which some older unzip tools cannot read.
   is a name longer than 255 bytes in UTF-8, the most file systems take.
 - A file whose name is already taken in the archive is renamed by adding `-2`, `-3` and so on
   before the first dot, ignoring a dot at the very start: a second `report.tar.gz` becomes
-  `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`. Where the number would take
-  the name past 255 bytes, the part before it is shortened to fit.
+  `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`. The number may take a name
+  a few bytes past 255.
 - Names that differ only in letter case or Unicode form count as the same name, because the
   default file system of macOS treats them as one, and that of Windows ignores letter case:
   `Report.txt` and `report.txt` become `Report.txt` and `report-2.txt`.

@@ -41,8 +41,8 @@ class Content(Protocol):
         ...
 
 
-# The longest file name most file systems take, in bytes of UTF-8.
-_MAX_ENTRY_NAME_SIZE = 255
+# The longest name a ZIP entry holds, in bytes of UTF-8.
+_MAX_ENTRY_NAME_SIZE = 65_535
 
 
 def _check_single_name(value: str) -> str:
@@ -64,7 +64,7 @@ class EntryName(ValueObject):
     """The name a file has inside an archive.
 
     It is a single, non-empty file name, such as `report.pdf`, with no path, drive or control
-    characters in it, and at most 255 bytes long in UTF-8.
+    characters in it, and at most 65,535 bytes long in UTF-8.
     """
 
     value: Annotated[str, AfterValidator(_check_single_name)]
@@ -86,18 +86,14 @@ class EntryName(ValueObject):
         """Return this name with a number added, to tell it apart from a name already taken.
 
         The number goes before the first dot, ignoring a dot at the start of the name:
-        `foo.tar.gz` becomes `foo-2.tar.gz`, and `.bashrc` becomes `.bashrc-2`. Where the
-        number would make the name too long, the part before it is shortened to fit.
+        `foo.tar.gz` becomes `foo-2.tar.gz`, and `.bashrc` becomes `.bashrc-2`.
 
         Args:
             counter: The number to add.
         """
         extensions = "".join(PureWindowsPath(self.value).suffixes)
         stem = self.value.removesuffix(extensions)
-        suffix = f"-{counter}{extensions}"
-        while stem and len(f"{stem}{suffix}".encode()) > _MAX_ENTRY_NAME_SIZE:
-            stem = stem[:-1]
-        return self.model_validate(f"{stem}{suffix}")
+        return self.model_validate(f"{stem}-{counter}{extensions}")
 
 
 class ArchiveEntry(ValueObject):

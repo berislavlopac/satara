@@ -27,7 +27,6 @@ pooled_names = st.builds(
 free_names = st.text(
     alphabet=st.characters(categories=["L", "N"], include_characters=" .-_"),
     min_size=1,
-    max_size=60,
 ).filter(lambda value: value not in {".", ".."})
 names = st.lists(st.one_of(pooled_names, free_names).map(EntryName.model_validate), max_size=30)
 
@@ -50,18 +49,18 @@ def test_entry_name_refuses_a_name_holding_a_control_character(value):
 
 @pytest.mark.parametrize(
     "value",
-    ["a" * 256, "\u00e9" * 128, "\ud800.txt"],
-    ids=["256 bytes of ASCII", "256 bytes of two-byte characters", "a lone surrogate"],
+    ["a" * 65_536, "\u00e9" * 32_768, "\ud800.txt"],
+    ids=["too long in ASCII", "too long in two-byte characters", "a lone surrogate"],
 )
-def test_entry_name_refuses_a_name_UTF_8_cannot_hold_in_255_bytes(value):
+def test_entry_name_refuses_a_name_UTF_8_cannot_hold_in_65535_bytes(value):
     with pytest.raises(ValidationError):
         EntryName.model_validate(value)
 
 
 @pytest.mark.parametrize(
-    "value", ["a" * 255, "\u00e9" * 127 + "a"], ids=["ASCII", "two-byte characters"]
+    "value", ["a" * 65_535, "\u00e9" * 32_767 + "a"], ids=["ASCII", "two-byte characters"]
 )
-def test_entry_name_accepts_a_name_of_255_bytes(value):
+def test_entry_name_accepts_a_name_of_65535_bytes(value):
     entry_name = EntryName.model_validate(value)
 
     assert str(entry_name) == value
@@ -162,16 +161,6 @@ def test_archive_numbers_thousands_of_files_under_one_name_quickly(memory_conten
 
     assert time.perf_counter() - start < 1
     assert str(archive.entries[-1].name) == "a-3000.txt"
-
-
-def test_archive_shortens_a_name_that_numbering_would_make_too_long(memory_content):
-    archive = Archive()
-    name = EntryName.model_validate("a" * 251 + ".txt")
-    archive.add(name, 0, memory_content(b""))
-
-    entry = archive.add(name, 0, memory_content(b""))
-
-    assert str(entry.name) == "a" * 249 + "-2.txt"
 
 
 @given(names)

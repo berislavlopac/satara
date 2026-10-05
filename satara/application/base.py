@@ -94,8 +94,15 @@ class Limits(FrozenModel):
             )
 
 
+# The longest file name most file systems take, in bytes of UTF-8.
+_MAX_FILE_NAME_SIZE = 255
+
+
 def to_entry_name(sent_name: str) -> EntryName:
     """Return the name a file takes in the archive: its base name.
+
+    The base name may be at most 255 bytes long in UTF-8. A number added later, to tell it
+    apart from a name already taken, may take it a few bytes past that.
 
     Raises:
         InvalidFileNameError: The base name is not a usable file name.
@@ -103,9 +110,12 @@ def to_entry_name(sent_name: str) -> EntryName:
     # `PureWindowsPath` treats both `/` and `\` as separators, on any platform.
     base_name = PureWindowsPath(sent_name).name
     try:
-        return EntryName.model_validate(base_name)
+        entry_name = EntryName.model_validate(base_name)
     except ValidationError:
         raise InvalidFileNameError(f"{sent_name!r} is not a usable file name") from None
+    if len(base_name.encode()) > _MAX_FILE_NAME_SIZE:
+        raise InvalidFileNameError(f"{sent_name!r} is not a usable file name")
+    return entry_name
 
 
 def to_archive_name(name: str) -> ArchiveName:

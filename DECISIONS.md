@@ -532,8 +532,15 @@ format holds a name of at most 65,535 bytes, and the deferred flow's JSON body l
 one through: the archive was created, every file uploaded, and each build then failed. A name
 that cannot be encoded as UTF-8 (a lone surrogate) failed when the manifest was written. Both
 are refused now, with the limit set at 255 bytes, the most file systems take, since a longer
-name would not extract on the client's machine anyway. Renaming shortens the part before the
-number where the number would take a name past the limit.
+name would not extract on the client's machine anyway.
+
+The limit applies to a name as sent, not to the name in the archive: a number added to tell a
+file apart may take its name a few bytes past 255. Shortening the name to fit instead was
+tried and dropped. It made a numbered name depend on more than the name it came from, so
+different long names could end up numbered the same, numbering grew slow again, and a name
+whose extensions alone filled the limit could not be numbered at all. A numbered name near the
+limit may not extract on some file systems, which is the edge case kept. A name in the archive
+is limited only by what a ZIP entry holds, 65,535 bytes.
 
 ### The scripts are not tested
 
