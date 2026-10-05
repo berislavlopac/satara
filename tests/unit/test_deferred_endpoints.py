@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from uuid import uuid4, uuid7
 
@@ -28,7 +29,9 @@ def client(repository, storage, broker, recording_writer):
 
 def create(client, *files, name=None):
     body = {"name": name, "files": [{"name": file, "size": size} for file, size in files]}
-    return client.post("/archives", json=body)
+    # Encoded here, as JSON escapes, because the test client cannot write a lone surrogate.
+    headers = {"Content-Type": "application/json"}
+    return client.post("/archives", content=json.dumps(body), headers=headers)
 
 
 def test_create_archive_answers_with_a_URL_to_upload_each_file_to(client):
@@ -83,8 +86,13 @@ def test_archive_files_keeps_its_own_body_limit_beside_archive_creation(client):
     assert response.status_code == HTTPStatus.OK
 
 
-def test_create_archive_refuses_an_unusable_file_name(client):
-    response = create(client, ("..", 1))
+@pytest.mark.parametrize(
+    "name",
+    ["..", "a" * 256, "\ud800.txt"],
+    ids=["a directory", "a name too long", "a lone surrogate"],
+)
+def test_create_archive_refuses_an_unusable_file_name(client, name):
+    response = create(client, (name, 1))
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
     assert response.json()["detail"][0]["loc"] == ["body", "files"]

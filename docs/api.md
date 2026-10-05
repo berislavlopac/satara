@@ -52,10 +52,12 @@ extensions, which some older unzip tools cannot read.
 
 - Each file keeps only its base name: directories in the name it was sent with are dropped.
   Both `/` and `\` count as separators.
-- A name holding a control character, such as a NUL byte or a line break, is refused.
+- A name holding a control character, such as a NUL byte or a line break, is refused, and so
+  is a name longer than 255 bytes in UTF-8, the most file systems take.
 - A file whose name is already taken in the archive is renamed by adding `-2`, `-3` and so on
   before the first dot, ignoring a dot at the very start: a second `report.tar.gz` becomes
-  `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`.
+  `report-2.tar.gz`, and a second `.bashrc` becomes `.bashrc-2`. Where the number would take
+  the name past 255 bytes, the part before it is shortened to fit.
 - Names that differ only in letter case or Unicode form count as the same name, because the
   default file system of macOS treats them as one, and that of Windows ignores letter case:
   `Report.txt` and `report.txt` become `Report.txt` and `report-2.txt`.
@@ -86,6 +88,7 @@ exception noted below.
 | 422    | No files.                                                                      |
 | 422    | A file whose name is empty, `.` or `..` once its directories are dropped.      |
 | 422    | A file whose name holds a control character.                                   |
+| 422    | A file whose name is longer than 255 bytes in UTF-8.                           |
 | 422    | An archive name that breaks the rules above.                                   |
 
 For 400 and 413, `detail` is a string. For 422, it is a list of errors in the form the web
