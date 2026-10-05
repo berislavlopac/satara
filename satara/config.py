@@ -51,8 +51,8 @@ class Settings(BaseSettings):
     DEFERRED_ENABLED: bool = False
     """Whether the deferred flow's endpoints are served."""
 
-    DEFERRED_MAX_FILES: Annotated[int, Field(gt=0)] = 1000
-    """The most files one deferred archive may hold."""
+    DEFERRED_MAX_FILES: Annotated[int, Field(gt=0, le=10_000)] = 1000
+    """The most files one deferred archive may hold; up to 10,000."""
 
     DEFERRED_MAX_FILE_SIZE: Annotated[Size, Field(le=5 * GIB)] = ByteSize(5 * GIB)
     """The largest size of a file in a deferred archive; up to 5 GiB.
