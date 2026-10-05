@@ -1,6 +1,6 @@
 # Deployment
 
-The service is not deployed anywhere: its pipeline stops at CI, as [the exercise page](exercise.md#not-included-release-publishing-and-deployment) explains. This page describes what running it for real needs. [Getting started](getting-started.md) covers running it locally.
+The service is not deployed anywhere: its pipeline stops at CI, as [the README](https://github.com/berislavlopac/satara#not-included-release-publishing-and-deployment) explains. This page describes what running it for real needs. [Getting started](getting-started.md) covers running it locally.
 
 ## One image, two processes
 
