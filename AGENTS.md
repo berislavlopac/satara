@@ -104,6 +104,10 @@ archive. The spec is the PDF in `docs/take-home-exercise.pdf`.
 - Document a Pydantic field with a string literal on the line after it.
 - A comment describes the code, not the change that produced it. Avoid "now", "no longer",
   "previously"; state the standing rule. History belongs in the commit message.
+- Comments and docstrings describe behaviour, including a non-obvious reason the code must be
+  as it is, so that it is not simplified back into a defect. They do not argue for a design
+  choice or weigh it against alternatives: that belongs in `DECISIONS.md`, which records the
+  higher-level choices.
 - State the observable outcome ("returns the input unchanged", "raises nothing"), not a
   category such as "no-op".
 - Refer to a dependency by its role ("the HTTP client"), not its name.
