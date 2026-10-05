@@ -1,6 +1,7 @@
 site_name: Satara Archiver
 site_description: A service that packs uploaded files into a ZIP archive.
 site_author: Berislav Lopac <berislav@lopac.net>
+site_url: https://berislavlopac.github.io/satara/
 repo_url: https://github.com/berislavlopac/satara
 # Plain file links, so the built site also works opened straight from disk.
 use_directory_urls: false
