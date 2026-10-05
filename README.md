@@ -43,7 +43,7 @@ uv run just --list
 
 ## Documentation
 
-The documentation is in [`docs/`](docs/index.md). To read it as a site, run `uv run just docs` and open <http://localhost:7000>. It covers [getting started](docs/getting-started.md), [the API](docs/api.md), [configuration](docs/configuration.md), [deployment](docs/deployment.md), [CI and quality checks](docs/ci.md) and [the architecture](docs/architecture.md).
+The documentation is published at <https://berislavlopac.github.io/satara/>. Its source is in [`docs/`](docs/index.md), and `uv run just docs` serves it locally at <http://localhost:7000>. It covers [getting started](docs/getting-started.md), [the API](docs/api.md), [configuration](docs/configuration.md), [deployment](docs/deployment.md), [CI and quality checks](docs/ci.md) and [the architecture](docs/architecture.md).
 
 ## Decisions and trade-offs
 
