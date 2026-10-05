@@ -232,12 +232,13 @@ same name, so the second is renamed. The renaming rule exists so that extracting
 replaces no file. The default file system of macOS treats such names as one, and that of
 Windows ignores letter case. Each file keeps its own spelling.
 
-### No limit on the length of a file name (replaced on 2026-10-05)
+### No limit on the length of a file name
 
 A name longer than a file system allows, usually 255 bytes, is kept as it is. The archive holds
 it without trouble; only that one file fails to extract on the client's machine. A cap would
 have to shorten names when renaming, or a name just under it would break the cap once `-2` is
-added, and that rule is more than this edge case is worth.
+added, and that rule is more than this edge case is worth. Replaced on 2026-10-05 by a limit
+of 255 bytes on the name as sent.
 
 ### The limits have ceilings
 
@@ -541,6 +542,11 @@ different long names could end up numbered the same, numbering grew slow again, 
 whose extensions alone filled the limit could not be numbered at all. A numbered name near the
 limit may not extract on some file systems, which is the edge case kept. A name in the archive
 is limited only by what a ZIP entry holds, 65,535 bytes.
+
+### The deferred flow's file count has a ceiling
+
+`DEFERRED_MAX_FILES` is at most 10,000. The body limit for creating an archive allows 1 KiB
+for each file allowed, so without a ceiling on the count that limit had none either.
 
 ### The scripts are not tested
 
