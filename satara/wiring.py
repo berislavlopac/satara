@@ -20,13 +20,13 @@ from satara.infrastructure.events import InProcessEventBroker
 from satara.infrastructure.s3 import S3ArchiveRepository, S3FileStorage
 from satara.infrastructure.sqs import SQSMessageQueue
 from satara.infrastructure.zip import ZipArchiveWriter
-from satara.presentation.consumer import Consumer
-from satara.presentation.http import (
+from satara.presentation.api import (
     deferred_router,
     handle_archive_not_found,
     handle_upload_rejected,
     router,
 )
+from satara.presentation.consumer import Consumer
 
 log = get_logger(__name__)
 

@@ -8,7 +8,7 @@ from satara.application.base import Limits
 from satara.application.deferred import DeferredArchiveService
 from satara.config import Settings
 from satara.domain import ArchiveID
-from satara.presentation.http import get_deferred_service
+from satara.presentation.api import get_deferred_service
 from satara.wiring import create_app
 
 
