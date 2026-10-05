@@ -59,8 +59,7 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 # Ordered by who is reading: someone running the service, someone calling it, and someone
-# changing it. The AI write-up stands on its own: it describes the author's general practice,
-# not only this project.
+# changing it.
 nav:
   - Overview: index.md
   - Getting started: getting-started.md
@@ -69,4 +68,3 @@ nav:
   - Deployment: deployment.md
   - CI and quality checks: ci.md
   - Architecture: architecture.md
-  - AI-assisted development: ai-assisted-development.md
