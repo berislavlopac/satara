@@ -10,7 +10,7 @@ x-aws: &aws
 
 services:
   storage:
-    image: ministackorg/ministack:1.5.21
+    image: ministackorg/ministack:1.5.22
     ports:
       - "4566:4566"
     environment:
